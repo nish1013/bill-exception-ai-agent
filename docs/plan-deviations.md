@@ -128,11 +128,11 @@ Built:    `seed_demo` inserts the two tenant rows as the owner role, with `ON CO
 Why:      The Playwright specs ingest bills in the Compose database, and each bill needs its tenant row. Tenants are created outside the product (US1), so no mutation creates them.
 Undo:     Delete `apps/api/payables/management/commands/seed_demo.py` and its line in `scripts/test-all.sh`. The Playwright specs then fail at the first ingest.
 
-## D15. The bill list and the inbox return at most 500 rows (PR 5, 2026-10-21)
+## D15. The bill list and the inbox show at most 500 rows, with the total (PR 5, 2026-10-21)
 
-In short: The `bills` and `exceptions` queries return the newest 500 rows. A tenant with more rows does not see the older ones in the console.
+In short: The `bills` and `exceptions` queries return the newest 500 rows and the total count. When rows are hidden, the console shows "Showing 500 of 612. Narrow the filter to see the rest."
 
 Plan:     The Stack table gives the DataGrid free tier for "sort, filter and page" with no extra code. The API section gives no limit and no paging for `bills` or `exceptions`.
-Built:    `LIST_LIMIT = 500` in `bill_list_query.py` and `inbox_query.py`. The DataGrid pages the rows in the browser, 25 rows per page.
-Why:      The free DataGrid pages in the browser, so the API sends the full list in one response. A fixed limit keeps one response bounded. 500 is also the maximum number of bills in one check job (US5).
-Undo:     Remove `LIST_LIMIT` and the slice in `apps/api/payables/adapters/orm/bill_list_query.py` and `inbox_query.py`.
+Built:    `LIST_LIMIT = 500` in `bill_list_query.py` and `inbox_query.py`. Each query returns `items` and `totalCount`. The count uses the same tenant, row-level security and filters as the rows. `ListLimitNotice` shows the notice above the grid.
+Why:      The free DataGrid pages in the browser, so the API sends the full list in one response. A fixed limit keeps one response bounded. The total tells the clerk that open exceptions are hidden, because a hidden exception is money at risk.
+Undo:     Remove `LIST_LIMIT` and the slice in `apps/api/payables/adapters/orm/bill_list_query.py` and `inbox_query.py`. The notice then never shows.
