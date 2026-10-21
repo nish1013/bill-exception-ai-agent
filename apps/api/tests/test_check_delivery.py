@@ -20,8 +20,12 @@ from tests.broker import (
 )
 from tests.check_data import (
     add_bill,
+    add_po,
+    check,
+    exception_id,
     exceptions_on,
     job_row,
+    resolutions_of,
     start_job,
 )
 from tests.concurrency import owner_count
@@ -133,3 +137,17 @@ def test_us6_three_failures_fail_b2_and_dead_letter(committed_db, queues):
         == 1
     )
     assert exceptions_on(b2) == []
+
+
+def test_i16_po_999_resolves_b5_through_the_broker(committed_db, queues):
+    b5 = add_bill("K5", invoice_number="INV-005", po_number="PO-999")
+    check(start_job([b5]).id, b5)
+    e1 = exception_id(b5, "po_mismatch")
+    add_po("PO-999")
+    env = process_env(queues)
+
+    with running(RELAY_COMMAND, env), running(worker_command(CHECKS), env):
+        wait_until(lambda: resolutions_of(e1) != [], "the system resolves E1")
+
+    assert resolutions_of(e1) == [("system", "system", None)]
+    assert owner_count("check_job", "requested_by = 'system' AND status = 'completed'") == 1

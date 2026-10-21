@@ -1,5 +1,5 @@
 from datetime import timedelta
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from django.db.models import Count, DateTimeField, ExpressionWrapper, QuerySet, Value
 from django.db.models.functions import Now
@@ -15,8 +15,9 @@ class CheckJobOrmRepository:
     def __init__(self, tenant_id: UUID) -> None:
         self._tenant_id = tenant_id
 
-    def add(self, requested_by: str, bill_ids: list[UUID]) -> CheckJob:
+    def add(self, requested_by: str, bill_ids: list[UUID], job_id: UUID | None = None) -> CheckJob:
         row = CheckJobRow.objects.create(
+            id=job_id or uuid4(),
             tenant_id=self._tenant_id,
             requested_by=requested_by,
             status=CheckJobStatus.QUEUED.value,

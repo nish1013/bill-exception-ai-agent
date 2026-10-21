@@ -7,7 +7,9 @@ from payables.domain.checks.check_result import CheckResult
 
 
 class CheckJobRepository(Protocol):
-    def add(self, requested_by: str, bill_ids: list[UUID]) -> CheckJob: ...
+    def add(
+        self, requested_by: str, bill_ids: list[UUID], job_id: UUID | None = None
+    ) -> CheckJob: ...
 
     def find(self, job_id: UUID) -> CheckJob | None: ...
 

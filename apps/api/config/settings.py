@@ -47,7 +47,10 @@ CELERY_TASK_ACKS_ON_FAILURE_OR_TIMEOUT = False
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_BROKER_TRANSPORT_OPTIONS = {"confirm_publish": True}
 CELERY_TASK_IGNORE_RESULT = True
-CELERY_IMPORTS = ["payables.entrypoints.tasks.check_bill"]
+CELERY_IMPORTS = [
+    "payables.entrypoints.tasks.check_bill",
+    "payables.entrypoints.tasks.purchase_order_added",
+]
 
 CHECK_LOCK_TIMEOUT_MS = int(os.environ.get("CHECK_LOCK_TIMEOUT_MS", "5000"))
 

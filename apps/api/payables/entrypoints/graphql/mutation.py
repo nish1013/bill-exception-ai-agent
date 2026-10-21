@@ -81,6 +81,7 @@ class Mutation(graphene.ObjectType):
             command,
             SupplierOrmRepository(principal.tenant_id),
             PurchaseOrderOrmRepository(principal.tenant_id),
+            OutboxOrmRepository(principal.tenant_id),
         )
 
     def resolve_ingest_bill(root, info, idempotency_key: str, bill: BillInput) -> IngestBillPayload:

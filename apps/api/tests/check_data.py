@@ -62,6 +62,7 @@ def add_po(
             AddPurchaseOrderCommand(number, supplier_id, amount, currency),
             SupplierOrmRepository(tenant_id),
             PurchaseOrderOrmRepository(tenant_id),
+            OutboxOrmRepository(tenant_id),
         ).id
 
 
