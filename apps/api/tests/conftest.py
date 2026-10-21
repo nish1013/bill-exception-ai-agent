@@ -13,6 +13,8 @@ from tests.tenants import NAMES
 
 GraphQL = Callable[..., Any]
 
+INGEST_TABLES = ("bill", "purchase_order", "supplier")
+
 
 @pytest.fixture(scope="session")
 def django_db_setup(django_test_environment, django_db_blocker) -> Iterator[None]:
@@ -65,3 +67,12 @@ def graphql(client: Client) -> GraphQL:
         return client.post(path, body, content_type="application/json", **headers)
 
     return post
+
+
+@pytest.fixture
+def committed_db(django_db_setup, django_db_blocker) -> Iterator[None]:
+    with django_db_blocker.unblock():
+        yield
+        with connections["owner"].cursor() as cursor:
+            for table in INGEST_TABLES:
+                cursor.execute(f"DELETE FROM {table}")

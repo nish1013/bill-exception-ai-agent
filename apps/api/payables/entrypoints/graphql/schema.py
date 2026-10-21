@@ -1,6 +1,7 @@
 import graphene
 
 from payables.adapters.orm.tenant_repository import TenantRepository
+from payables.entrypoints.graphql.mutation import Mutation
 from payables.entrypoints.graphql.viewer import Viewer
 
 
@@ -16,4 +17,4 @@ class Query(graphene.ObjectType):
         )
 
 
-schema = graphene.Schema(query=Query)
+schema = graphene.Schema(query=Query, mutation=Mutation)

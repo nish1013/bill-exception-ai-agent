@@ -1,0 +1,35 @@
+from dataclasses import dataclass
+from typing import Any
+from uuid import UUID
+
+from payables.application.authorization import require_role
+from payables.application.ports.purchase_order_repository import PurchaseOrderRepository
+from payables.application.ports.supplier_repository import SupplierRepository
+from payables.domain.errors import NotFoundError
+from payables.domain.money import Money
+from payables.domain.po_number import po_number
+from payables.domain.principal import Principal
+from payables.domain.purchase_order import PurchaseOrder
+from payables.domain.role import Role
+
+
+@dataclass(frozen=True)
+class AddPurchaseOrderCommand:
+    po_number: str
+    supplier_id: UUID
+    amount: Any
+    currency: str
+
+
+def add_purchase_order(
+    principal: Principal,
+    command: AddPurchaseOrderCommand,
+    suppliers: SupplierRepository,
+    purchase_orders: PurchaseOrderRepository,
+) -> PurchaseOrder:
+    require_role(principal, Role.CLERK)
+    number = po_number(command.po_number)
+    amount = Money(command.amount, command.currency)
+    if not suppliers.exists(command.supplier_id):
+        raise NotFoundError("supplier not found")
+    return purchase_orders.add(command.supplier_id, number, amount)
