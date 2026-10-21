@@ -28,9 +28,11 @@ def _database(user_variable: str, password_variable: str) -> dict:
 
 
 # default is the app role, which row-level security filters. owner owns the tables and migrates.
+# relay bypasses row-level security on the outbox and check_job tables only (D7).
 DATABASES = {
     "default": _database("POSTGRES_APP_USER", "POSTGRES_APP_PASSWORD"),
     "owner": _database("POSTGRES_USER", "POSTGRES_PASSWORD"),
+    "relay": _database("POSTGRES_RELAY_USER", "POSTGRES_RELAY_PASSWORD"),
 }
 
 MIGRATION_MODULES = {"payables": "payables.adapters.orm.migrations"}
@@ -38,7 +40,16 @@ MIGRATION_MODULES = {"payables": "payables.adapters.orm.migrations"}
 REDIS_URL = os.environ["REDIS_URL"]
 
 CELERY_BROKER_URL = os.environ["CELERY_BROKER_URL"]
+# At least once (D43): ack after the task, requeue when the worker dies, confirm each publish.
 CELERY_TASK_ACKS_LATE = True
+CELERY_TASK_REJECT_ON_WORKER_LOST = True
+CELERY_TASK_ACKS_ON_FAILURE_OR_TIMEOUT = False
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_BROKER_TRANSPORT_OPTIONS = {"confirm_publish": True}
+CELERY_TASK_IGNORE_RESULT = True
+CELERY_IMPORTS = ["payables.entrypoints.tasks.check_bill"]
+
+CHECK_LOCK_TIMEOUT_MS = int(os.environ.get("CHECK_LOCK_TIMEOUT_MS", "5000"))
 
 OIDC_ISSUER = os.environ["OIDC_ISSUER"]
 OIDC_JWKS_URL = os.environ["OIDC_JWKS_URL"]

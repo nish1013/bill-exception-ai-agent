@@ -9,9 +9,13 @@ CURRENT_TENANT_SQL = f"NULLIF(current_setting('{TENANT_SETTING}', true), '')::uu
 
 
 @contextmanager
-def tenant_transaction(tenant_id: UUID) -> Iterator[None]:
+def tenant_transaction(tenant_id: UUID, lock_timeout_ms: int | None = None) -> Iterator[None]:
     # is_local=true scopes the setting to this transaction, so a pooled connection keeps no tenant.
     with transaction.atomic():
         with connection.cursor() as cursor:
             cursor.execute("SELECT set_config(%s, %s, true)", [TENANT_SETTING, str(tenant_id)])
+            if lock_timeout_ms is not None:
+                cursor.execute(
+                    "SELECT set_config('lock_timeout', %s, true)", [f"{lock_timeout_ms}ms"]
+                )
         yield
