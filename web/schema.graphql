@@ -1,0 +1,106 @@
+type Query {
+  viewer: Viewer!
+  bills: [Bill!]!
+  exceptions(status: String, severity: String): [Exception!]!
+  checkJob(id: UUID!): CheckJob!
+}
+
+type Viewer {
+  tenantId: UUID!
+  tenantName: String
+  role: String!
+}
+
+"""
+Leverages the internal Python implementation of UUID (uuid.UUID) to provide native UUID objects
+in fields, resolvers and input.
+"""
+scalar UUID
+
+type Bill {
+  id: UUID!
+  supplierName: String!
+  invoiceNumber: String!
+  amount: MinorUnits!
+  currency: String!
+  issueDate: Date!
+  hasReceipt: Boolean!
+  createdAt: DateTime!
+}
+
+"""
+An integer amount in minor units. Any other value returns VALIDATION (D14).
+"""
+scalar MinorUnits
+
+"""
+The `Date` scalar type represents a Date
+value as specified by
+[iso8601](https://en.wikipedia.org/wiki/ISO_8601).
+"""
+scalar Date
+
+"""
+The `DateTime` scalar type represents a DateTime
+value as specified by
+[iso8601](https://en.wikipedia.org/wiki/ISO_8601).
+"""
+scalar DateTime
+
+type Exception {
+  id: UUID!
+  billId: UUID!
+  supplierName: String!
+  invoiceNumber: String!
+  rule: String!
+  severity: String!
+  status: String!
+  relatedBillId: UUID
+  createdAt: DateTime!
+}
+
+type CheckJob {
+  id: UUID!
+  status: String!
+  billCount: Int!
+  okCount: Int!
+  failedCount: Int!
+}
+
+type Mutation {
+  registerSupplier(name: String!, vatNumber: String): Supplier!
+  addPurchaseOrder(poNumber: String!, supplierId: UUID!, amount: MinorUnits!, currency: String!): PurchaseOrder!
+  ingestBill(idempotencyKey: String!, bill: BillInput!): IngestBillPayload!
+  startBillCheck(billIds: [UUID!]!): CheckJob!
+}
+
+type Supplier {
+  id: UUID!
+  name: String!
+  vatNumber: String
+}
+
+type PurchaseOrder {
+  id: UUID!
+  poNumber: String!
+  supplierId: UUID!
+  amount: MinorUnits!
+  currency: String!
+}
+
+type IngestBillPayload {
+  billId: UUID!
+  supplierId: UUID!
+}
+
+input BillInput {
+  supplierName: String!
+  supplierVatNumber: String
+  invoiceNumber: String!
+  amount: MinorUnits!
+  currency: String!
+  vatAmount: MinorUnits
+  issueDate: Date!
+  poNumber: String
+  hasReceipt: Boolean!
+}

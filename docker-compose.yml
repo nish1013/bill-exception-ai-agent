@@ -104,6 +104,31 @@ services:
       timeout: 10s
       retries: 12
 
+  web:
+    build:
+      context: ./web
+      args:
+        VITE_OIDC_AUTHORITY: http://localhost:${OIDC_PORT:-8080}/payables
+        VITE_OIDC_CLIENT_ID: payables-console
+    # No app environment: the console container holds no database, broker or signing secret.
+    environment:
+      API_UPSTREAM: api:8000
+      OIDC_ORIGIN: http://localhost:${OIDC_PORT:-8080}
+    ports:
+      - "${WEB_PORT:-3000}:8080"
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    depends_on:
+      api:
+        condition: service_healthy
+      oidc:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
 volumes:
   postgres-data:
   rabbitmq-data:
