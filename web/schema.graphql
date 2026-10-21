@@ -1,6 +1,7 @@
 type Query {
   viewer: Viewer!
   bills: BillList!
+  suppliers: SupplierList!
   exceptions(status: String, severity: String): ExceptionList!
   checkJob(id: UUID!): CheckJob!
 }
@@ -52,6 +53,17 @@ value as specified by
 """
 scalar DateTime
 
+type SupplierList {
+  items: [Supplier!]!
+  totalCount: Int!
+}
+
+type Supplier {
+  id: UUID!
+  name: String!
+  vatNumber: String
+}
+
 type ExceptionList {
   items: [Exception!]!
   totalCount: Int!
@@ -85,12 +97,6 @@ type Mutation {
   ingestBill(idempotencyKey: String!, bill: BillInput!): IngestBillPayload!
   startBillCheck(billIds: [UUID!]!): CheckJob!
   ignoreException(exceptionId: UUID!, reason: String!): Exception!
-}
-
-type Supplier {
-  id: UUID!
-  name: String!
-  vatNumber: String
 }
 
 type PurchaseOrder {
