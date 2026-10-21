@@ -100,3 +100,39 @@ Plan:     PR 4 is accepted when "the US5 and US6 duplicate rows pass". PR 6 buil
 Built:    PR 4 builds and tests the other US6 rows for `duplicate` and `possible_duplicate`. Each exception is `open`, because no resolution exists yet (D38).
 Why:      An ignore and a system resolve are each a `resolution` row (D35). The table and its key on the exception id are the I7 guard that PR 6 builds and tests.
 Undo:     None. PR 6 adds the two rows as tests.
+
+## D12. The inbox orders by severity from PR 5 (PR 5, 2026-10-21)
+
+In short: The `exceptions` query gives the severity of each exception and lists high severity first. The inbox shows the rule and the severity.
+
+Plan:     PR 6 lists "severity (D27)" and the console "rule and severity columns". PR 5 delivers US8, and US8 row 1 lists the open exceptions "high severity first".
+Built:    `payables/domain/checks/severity.py` holds the fixed map of D27. The query orders high, medium, low, then the newest first. The inbox has a rule column, a severity column and a severity filter.
+Why:      US8 row 1 cannot pass with no severity. D27 gives each rule one fixed severity, so the map needs no table or data from PR 6.
+Undo:     Remove the severity order in `apps/api/payables/adapters/orm/inbox_query.py` and the two columns in `web/src/inbox/InboxPage.tsx`. PR 6 then adds them.
+
+## D13. US8 row 1 is tested with open exceptions only (PR 5, 2026-10-21)
+
+In short: The status filter accepts each status. With no resolution row, each exception is `open`, so the other statuses return an empty list.
+
+Plan:     US8 row 1 is "`T1` has 3 `open` and 2 `resolved` exceptions", and the list holds the 3 `open` ones. PR 6 builds the `resolution` table.
+Built:    `test_us8_open_list_high_severity_first` uses open exceptions only. `test_us8_no_resolution_lists_none_as_closed` shows that `ignored`, `resolved` and `pending_sync` return an empty list.
+Why:      A resolved exception is an exception with a resolution row, and its status is derived on read (D35, D38). The table and its key are the I7 guard that PR 6 builds and tests, as in D11.
+Undo:     None. PR 6 adds the 2 resolved exceptions to the US8 test.
+
+## D14. PR 5 seeds the two demo tenants (PR 5, 2026-10-21)
+
+In short: `python manage.py seed_demo` creates tenant `T1` Acme Foods and tenant `T2` Beta Bakery. `make test-all` runs it after the migration.
+
+Plan:     The `make test-all` sequence has a "seed demo" step. PR 13 builds `make demo` and the seed of suppliers, POs and bills (D55).
+Built:    `seed_demo` inserts the two tenant rows as the owner role, with `ON CONFLICT (id) DO NOTHING`. It inserts no supplier, PO or bill.
+Why:      The Playwright specs ingest bills in the Compose database, and each bill needs its tenant row. Tenants are created outside the product (US1), so no mutation creates them.
+Undo:     Delete `apps/api/payables/management/commands/seed_demo.py` and its line in `scripts/test-all.sh`. The Playwright specs then fail at the first ingest.
+
+## D15. The bill list and the inbox show at most 500 rows, with the total (PR 5, 2026-10-21)
+
+In short: The `bills` and `exceptions` queries return the newest 500 rows and the total count. When rows are hidden, the console shows "Showing 500 of 612. Narrow the filter to see the rest."
+
+Plan:     The Stack table gives the DataGrid free tier for "sort, filter and page" with no extra code. The API section gives no limit and no paging for `bills` or `exceptions`.
+Built:    `LIST_LIMIT = 500` in `bill_list_query.py` and `inbox_query.py`. Each query returns `items` and `totalCount`. The count uses the same tenant, row-level security and filters as the rows. `ListLimitNotice` shows the notice above the grid.
+Why:      The free DataGrid pages in the browser, so the API sends the full list in one response. A fixed limit keeps one response bounded. The total tells the clerk that open exceptions are hidden, because a hidden exception is money at risk.
+Undo:     Remove `LIST_LIMIT` and the slice in `apps/api/payables/adapters/orm/bill_list_query.py` and `inbox_query.py`. The notice then never shows.

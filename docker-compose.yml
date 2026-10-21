@@ -12,7 +12,8 @@ x-app-env: &app-env
   POSTGRES_RELAY_PASSWORD: payables_relay
   REDIS_URL: redis://redis:6379/0
   CELERY_BROKER_URL: amqp://payables:payables@rabbitmq:5672//
-  OIDC_ISSUER: http://oidc:8080/payables
+  # The browser signs in at localhost. The API fetches the keys inside the Compose network.
+  OIDC_ISSUER: http://localhost:${OIDC_PORT:-8080}/payables
   OIDC_JWKS_URL: http://oidc:8080/payables/jwks
   OIDC_AUDIENCE: payables-api
 
@@ -69,6 +70,8 @@ services:
     image: ghcr.io/navikt/mock-oauth2-server:2.1.10
     environment:
       JSON_CONFIG_PATH: /oidc/config.json
+    ports:
+      - "${OIDC_PORT:-8080}:8080"
     volumes:
       - ./dev/oidc:/oidc:ro
     healthcheck:
@@ -100,6 +103,31 @@ services:
       interval: 10s
       timeout: 10s
       retries: 12
+
+  web:
+    build:
+      context: ./web
+      args:
+        VITE_OIDC_AUTHORITY: http://localhost:${OIDC_PORT:-8080}/payables
+        VITE_OIDC_CLIENT_ID: payables-console
+    # No app environment: the console container holds no database, broker or signing secret.
+    environment:
+      API_UPSTREAM: api:8000
+      OIDC_ORIGIN: http://localhost:${OIDC_PORT:-8080}
+    ports:
+      - "${WEB_PORT:-3000}:8080"
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    depends_on:
+      api:
+        condition: service_healthy
+      oidc:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
 
 volumes:
   postgres-data:

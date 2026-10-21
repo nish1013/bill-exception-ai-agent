@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Demo sign-in</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #f5f6f8; margin: 0; }
+    main { max-width: 420px; margin: 64px auto; padding: 24px; background: #fff;
+           border-radius: 8px; box-shadow: 0 1px 3px rgba(0, 0, 0, .15); }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    p { color: #555; margin: 0 0 20px; font-size: 14px; }
+    form { margin: 0 0 12px; }
+    button { width: 100%; padding: 12px; font-size: 16px; text-align: left; cursor: pointer;
+             border: 1px solid #c8ccd2; border-radius: 6px; background: #fff; }
+    button:hover { background: #eef2f7; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Demo sign-in</h1>
+  <p>Mock OIDC provider. Each user carries the tenant and role claims of the demo data.</p>
+  <form method="post">
+    <input type="hidden" name="username" value="c1">
+    <input type="hidden" name="claims" value='{"tenant_id": "11111111-1111-1111-1111-111111111111", "role": "clerk"}'>
+    <button type="submit">C1, clerk, Acme Foods</button>
+  </form>
+  <form method="post">
+    <input type="hidden" name="username" value="a1">
+    <input type="hidden" name="claims" value='{"tenant_id": "11111111-1111-1111-1111-111111111111", "role": "approver"}'>
+    <button type="submit">A1, approver, Acme Foods</button>
+  </form>
+  <form method="post">
+    <input type="hidden" name="username" value="a2">
+    <input type="hidden" name="claims" value='{"tenant_id": "11111111-1111-1111-1111-111111111111", "role": "approver"}'>
+    <button type="submit">A2, approver, Acme Foods</button>
+  </form>
+  <form method="post">
+    <input type="hidden" name="username" value="c9">
+    <input type="hidden" name="claims" value='{"tenant_id": "22222222-2222-2222-2222-222222222222", "role": "clerk"}'>
+    <button type="submit">C9, clerk, Beta Bakery</button>
+  </form>
+</main>
+</body>
+</html>

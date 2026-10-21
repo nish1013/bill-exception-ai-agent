@@ -22,9 +22,24 @@ run() {
   docker compose exec -T api uv run "$@"
 }
 
+web() {
+  npm --prefix web "$@"
+}
+
 docker compose up -d --build --wait
 run python manage.py migrate --database owner --noinput
+run python manage.py seed_demo
 run ruff format --check .
 run ruff check .
 run pytest
 run lint-imports
+
+# The console generates its types from web/schema.graphql. It must match the API schema.
+run python manage.py export_schema | diff -u web/schema.graphql -
+web ci --ignore-scripts
+web run lint
+web run typecheck
+web run test
+web run build
+npx --prefix web playwright install ${CI:+--with-deps} chromium
+web run e2e

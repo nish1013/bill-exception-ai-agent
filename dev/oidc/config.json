@@ -1,4 +1,6 @@
 {
+  "interactiveLogin": true,
+  "loginPagePath": "/oidc/login.html",
   "tokenCallbacks": [
     {
       "issuerId": "payables",
@@ -28,6 +30,11 @@
           "requestParam": "scope",
           "match": "no-tenant",
           "claims": {"sub": "no-tenant", "aud": ["payables-api"], "role": "clerk"}
+        },
+        {
+          "requestParam": "grant_type",
+          "match": "authorization_code",
+          "claims": {"aud": ["payables-api"]}
         }
       ]
     }

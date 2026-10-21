@@ -1,0 +1,23 @@
+import { defineConfig, devices } from "@playwright/test";
+
+const webPort = process.env.WEB_PORT ?? "3000";
+
+// The specs run against the full Compose stack. make test-all starts it first.
+export default defineConfig({
+  testDir: "e2e",
+  outputDir: "../test-results/playwright",
+  timeout: 60_000,
+  expect: { timeout: 15_000 },
+  workers: 1,
+  forbidOnly: Boolean(process.env.CI),
+  reporter: [
+    ["list"],
+    ["html", { outputFolder: "../test-results/playwright-report", open: "never" }],
+  ],
+  use: {
+    baseURL: `http://localhost:${webPort}`,
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
+  },
+  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+});

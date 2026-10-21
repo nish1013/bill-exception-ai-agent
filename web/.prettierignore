@@ -1,0 +1,6 @@
+dist
+src/gql
+schema.graphql
+playwright-report
+test-results
+package-lock.json
