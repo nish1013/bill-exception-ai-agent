@@ -40,6 +40,10 @@ REDIS_URL = os.environ["REDIS_URL"]
 CELERY_BROKER_URL = os.environ["CELERY_BROKER_URL"]
 CELERY_TASK_ACKS_LATE = True
 
+OIDC_ISSUER = os.environ["OIDC_ISSUER"]
+OIDC_JWKS_URL = os.environ["OIDC_JWKS_URL"]
+OIDC_AUDIENCE = os.environ["OIDC_AUDIENCE"]
+
 USE_TZ = True
 TIME_ZONE = "UTC"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

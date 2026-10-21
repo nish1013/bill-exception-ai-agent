@@ -1,0 +1,35 @@
+{
+  "tokenCallbacks": [
+    {
+      "issuerId": "payables",
+      "tokenExpiry": 3600,
+      "requestMappings": [
+        {
+          "requestParam": "scope",
+          "match": "c1",
+          "claims": {"sub": "c1", "aud": ["payables-api"], "tenant_id": "11111111-1111-1111-1111-111111111111", "role": "clerk"}
+        },
+        {
+          "requestParam": "scope",
+          "match": "a1",
+          "claims": {"sub": "a1", "aud": ["payables-api"], "tenant_id": "11111111-1111-1111-1111-111111111111", "role": "approver"}
+        },
+        {
+          "requestParam": "scope",
+          "match": "a2",
+          "claims": {"sub": "a2", "aud": ["payables-api"], "tenant_id": "11111111-1111-1111-1111-111111111111", "role": "approver"}
+        },
+        {
+          "requestParam": "scope",
+          "match": "c9",
+          "claims": {"sub": "c9", "aud": ["payables-api"], "tenant_id": "22222222-2222-2222-2222-222222222222", "role": "clerk"}
+        },
+        {
+          "requestParam": "scope",
+          "match": "no-tenant",
+          "claims": {"sub": "no-tenant", "aud": ["payables-api"], "role": "clerk"}
+        }
+      ]
+    }
+  ]
+}

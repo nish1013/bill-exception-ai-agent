@@ -10,6 +10,9 @@ x-app-env: &app-env
   POSTGRES_APP_PASSWORD: payables_app
   REDIS_URL: redis://redis:6379/0
   CELERY_BROKER_URL: amqp://payables:payables@rabbitmq:5672//
+  OIDC_ISSUER: http://oidc:8080/payables
+  OIDC_JWKS_URL: http://oidc:8080/payables/jwks
+  OIDC_AUDIENCE: payables-api
 
 x-app: &app
   build: ./apps/api
@@ -57,6 +60,19 @@ services:
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 5s
+      timeout: 10s
+      retries: 30
+
+  oidc:
+    image: ghcr.io/navikt/mock-oauth2-server:2.1.10
+    environment:
+      JSON_CONFIG_PATH: /oidc/config.json
+    volumes:
+      - ./dev/oidc:/oidc:ro
+    healthcheck:
+      # The image has no shell and no curl. Java runs the one-file check from source.
+      test: ["CMD", "java", "/oidc/Healthcheck.java"]
+      interval: 3s
       timeout: 10s
       retries: 30
 
