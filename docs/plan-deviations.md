@@ -136,3 +136,66 @@ Plan:     The Stack table gives the DataGrid free tier for "sort, filter and pag
 Built:    `LIST_LIMIT = 500` in `bill_list_query.py` and `inbox_query.py`. Each query returns `items` and `totalCount`. The count uses the same tenant, row-level security and filters as the rows. `ListLimitNotice` shows the notice above the grid.
 Why:      The free DataGrid pages in the browser, so the API sends the full list in one response. A fixed limit keeps one response bounded. The total tells the clerk that open exceptions are hidden, because a hidden exception is money at risk.
 Undo:     Remove `LIST_LIMIT` and the slice in `apps/api/payables/adapters/orm/bill_list_query.py` and `inbox_query.py`. The notice then never shows.
+
+## D16. The add-PO form gets its suppliers from a `suppliers` query (PR 6, 2026-10-21)
+
+In short: The API has a `suppliers` query. The add-PO form uses it to choose the supplier of a new PO.
+
+Plan:     `addPurchaseOrder(poNumber, supplierId, amount)` takes a supplier id, and PR 6 adds an add-PO form. The API section lists no query that returns a supplier id.
+Built:    `query { suppliers { totalCount items { id name vatNumber } } }` lists the suppliers of the token's tenant by normalised name. It returns at most 500 rows and the total, the same as D15.
+Why:      The form needs a supplier id, and `bills` returns only the supplier name. A clerk cannot know a supplier id from any screen. `test_d16_suppliers_by_name_own_tenant_only` shows that a `T2` supplier is not listed.
+Undo:     Remove `suppliers` from `apps/api/payables/entrypoints/graphql/schema.py` and the supplier select in `web/src/purchaseOrders/PurchaseOrderForm.tsx`. The form then needs another way to find the supplier id.
+
+## D17. A PO of another supplier is a `po_mismatch`, and the PO number is its fingerprint (PR 6, 2026-10-21)
+
+In short: A bill gets `po_mismatch` when no PO has its PO number, or when that PO has another supplier, amount or currency.
+
+Plan:     US6 gives two `po_mismatch` rows: an amount that differs from the PO (B4) and a PO that does not exist (B5). The plan does not say if the supplier must match, and gives no fingerprint for the rule.
+Built:    `payables/domain/checks/po_rules.py` compares the supplier and the `Money` of the PO with the bill. The fingerprint is the normalised PO number, so a bill has at most one `po_mismatch`.
+Why:      A bill from S2 that refers to the PO of S1 pays a supplier that the PO did not order from. The PO number fingerprint lets the `PurchaseOrderAdded` handler find the open exceptions of one PO number with one key lookup (D44). Bills and POs never change, so a re-check gives the same fingerprint (I6).
+Undo:     Remove the `supplier_id` comparison in `apps/api/payables/domain/checks/po_rules.py`.
+
+## D18. A VAT amount of 0 is not `missing_vat` (PR 6, 2026-10-21)
+
+In short: Only a bill with no VAT amount gets `missing_vat`. A bill with VAT 0 gets no exception.
+
+Plan:     US6 row "B6 has no VAT amount" gives one `missing_vat`. The plan does not say what a VAT amount of 0 gives.
+Built:    `missing_vat` in `payables/domain/checks/bill_rules.py` finds a problem only when `vat_amount_minor` is null. `test_us6_zero_vat_is_not_missing` covers the value 0.
+Why:      A zero-rated or exempt supply has a VAT amount of 0, and that bill is correct. An exception on each such bill fills the inbox with items that are not problems.
+Undo:     Add `or bill.vat_amount_minor == 0` to the condition in `missing_vat`.
+
+## D19. The resolution table has no proposal kind until PR 9 (PR 6, 2026-10-21)
+
+In short: A resolution in PR 6 is an ignore or a system resolve. The proposal kind and its key to the proposal come with the approve.
+
+Plan:     The data model gives `resolution` the kinds `ignore`, `system` and `proposal`, with a foreign key `proposal_id`. PR 6 lists I8, and I8 says that a proposal resolution refers to an approved proposal.
+Built:    `resolution` has `kind` `ignore` or `system` and no `proposal_id` column. The `CHECK` `resolution_kind_fields` requires a user actor and a non-blank reason for an ignore, and actor `system` and no reason for a system resolve.
+Why:      The `proposal` table comes in PR 8, and the approve that writes a proposal resolution comes in PR 9. A foreign key needs its table. A `proposal` kind with no key accepts an id that refers to nothing.
+Undo:     None. PR 9 adds `proposal_id` with its foreign key, the `proposal` kind in the `CHECK`, and `pending_sync` in the status derivation.
+
+## D20. US9 row 3 is tested with a resolved exception (PR 6, 2026-10-21)
+
+In short: The test for "ignore of a closed exception returns 409" uses a system-resolved exception. The `pending_sync` version waits for PR 9.
+
+Plan:     US9 row 3 is "E3 is `pending_sync`. C1 ignores E3. The API returns 409". PR 6 is accepted when each US9 row passes.
+Built:    `test_us9_ignore_of_resolved_409` ignores an exception with a system resolution and gets 409. `test_us9_ignore_of_ignored_409_first_kept` does the same for an ignored exception.
+Why:      An exception is `pending_sync` only when an approved proposal holds it (D10, D38), and the approve comes in PR 9. Each case is refused by the same primary key on `resolution.exception_id` (I7).
+Undo:     None. PR 9 adds the `pending_sync` version of the test.
+
+## D21. An ignore reason holds at most 1000 characters (PR 6, 2026-10-21)
+
+In short: `ignoreException` refuses a reason that is empty after trim, or longer than 1000 characters, with status 400.
+
+Plan:     US9 refuses an empty reason with 400. The plan gives no maximum length.
+Built:    `IgnoreReason` in `payables/domain/ignore_reason.py` trims the reason and refuses 0 or more than 1000 characters. The console form has the same rule in `web/src/inbox/ignoreForm.schema.ts`.
+Why:      The reason is free text that each inbox response returns. A fixed limit keeps the row and the response bounded. The API refuses a longer reason and never cuts it.
+Undo:     Remove the `MAX_LENGTH` check in `apps/api/payables/domain/ignore_reason.py` and `ignoreForm.schema.ts`.
+
+## D22. A new PO with more than 500 open mismatches starts one job for each 500 bills (PR 6, 2026-10-21)
+
+In short: The `PurchaseOrderAdded` handler splits the bills into check jobs of at most 500 bills each.
+
+Plan:     D44 says that the handler starts a check job for the bills with an open `po_mismatch` on the PO number. US5 gives a maximum of 500 bills for each check job.
+Built:    `recheck_jobs` in `payables/domain/checks/recheck_job.py` makes one job for each 500 bills. Each job id is `uuid5(event_id, n)`, so a repeat event finds the first job and starts nothing.
+Why:      One job of 501 bills breaks the job limit, and the handler would fail to the DLQ with each exception still open. `test_i16_recheck_of_1001_bills_in_three_jobs` gives jobs of 500, 500 and 1.
+Undo:     Start one job of all the bills in `apps/api/payables/application/recheck_po_mismatches.py`. A PO with more than 500 open mismatches then fails to the DLQ.
