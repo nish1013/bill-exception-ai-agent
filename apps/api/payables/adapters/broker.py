@@ -7,11 +7,13 @@ from kombu import Connection, Exchange, Queue
 
 CHECKS = "checks"
 PROPOSE_AI = "propose-ai"
+APPLY = "apply"
 DEAD_LETTER_SUFFIX = ".dlq"
 
 CHECK_BILL_TASK = "payables.check_bill"
 PURCHASE_ORDER_ADDED_TASK = "payables.purchase_order_added"
 DRAFT_FIX_PROPOSAL_TASK = "payables.draft_fix_proposal"
+APPLY_FIX_PROPOSAL_TASK = "payables.apply_fix_proposal"
 
 
 @dataclass(frozen=True)
@@ -24,6 +26,7 @@ ROUTES: dict[str, Route] = {
     "CheckBill": Route(CHECK_BILL_TASK, CHECKS),
     "PurchaseOrderAdded": Route(PURCHASE_ORDER_ADDED_TASK, CHECKS),
     "DraftFixProposal": Route(DRAFT_FIX_PROPOSAL_TASK, PROPOSE_AI),
+    "ApplyFixProposal": Route(APPLY_FIX_PROPOSAL_TASK, APPLY),
 }
 
 
@@ -60,8 +63,13 @@ def dead_letter_queue(name: str) -> Queue:
     return Queue(dead_letters, Exchange(dead_letters, type="direct"), routing_key=dead_letters)
 
 
-WORK_QUEUES = (work_queue(CHECKS), work_queue(PROPOSE_AI))
-DEAD_LETTER_QUEUES = (dead_letter_queue(CHECKS), dead_letter_queue(PROPOSE_AI))
+# The apply queue is durable, so each apply message waits there for its worker (D43).
+WORK_QUEUES = (work_queue(CHECKS), work_queue(PROPOSE_AI), work_queue(APPLY))
+DEAD_LETTER_QUEUES = (
+    dead_letter_queue(CHECKS),
+    dead_letter_queue(PROPOSE_AI),
+    dead_letter_queue(APPLY),
+)
 ALL_QUEUES = WORK_QUEUES + DEAD_LETTER_QUEUES
 
 

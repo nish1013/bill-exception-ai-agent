@@ -4,7 +4,7 @@ from datetime import date
 from uuid import UUID
 
 from django.db import IntegrityError, connection, models, transaction
-from django.db.models import Max, Q
+from django.db.models import F, Max, Q
 from django.db.models.functions import Now
 
 from payables.adapters.orm.bills import BillRow
@@ -19,6 +19,7 @@ from payables.application.proposals import (
     ProposalItem,
 )
 from payables.domain.checks.rules import Rule
+from payables.domain.errors import ForbiddenError
 from payables.domain.proposals.agent import (
     DraftOutcome,
     ProposalScope,
@@ -27,14 +28,17 @@ from payables.domain.proposals.agent import (
     ScopePurchaseOrder,
 )
 from payables.domain.proposals.proposals import (
+    APPROVED_STATUSES,
     DAILY_QUOTA,
     ActionKind,
     FailedReason,
     ProposalStatus,
     QuotaSlot,
+    RejectReason,
 )
 
 QUOTA_KEY = "proposal_tenant_quota_slot_key"
+FOUR_EYES = "proposal_four_eyes"
 LIST_LIMIT = 500
 UTC_TODAY_SQL = "SELECT (now() AT TIME ZONE 'UTC')::date"
 
@@ -60,6 +64,9 @@ class ProposalRow(models.Model):
     quota_day = models.DateField()
     quota_slot = models.SmallIntegerField()
     failed_reason = models.CharField(max_length=32, null=True)
+    approved_by = models.TextField(null=True)
+    approved_at = models.DateTimeField(null=True)
+    reject_reason = models.TextField(null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -85,6 +92,29 @@ class ProposalRow(models.Model):
                 )
                 | (~Q(status=ProposalStatus.FAILED.value) & Q(failed_reason=None)),
                 name="proposal_failed_reason",
+            ),
+            # The database refuses an approver who is the requester, whatever the caller (I9, D11).
+            models.CheckConstraint(condition=~Q(approved_by=F("requested_by")), name=FOUR_EYES),
+            models.CheckConstraint(
+                condition=Q(
+                    status__in=[status.value for status in APPROVED_STATUSES],
+                    approved_by__regex=r"\S",
+                    approved_at__isnull=False,
+                )
+                | (
+                    ~Q(status__in=[status.value for status in APPROVED_STATUSES])
+                    & Q(approved_by=None, approved_at=None)
+                ),
+                name="proposal_approval_fields",
+            ),
+            models.CheckConstraint(
+                condition=Q(
+                    status=ProposalStatus.REJECTED.value,
+                    reject_reason__isnull=False,
+                    reject_reason__regex=r"\S",
+                )
+                | (~Q(status=ProposalStatus.REJECTED.value) & Q(reject_reason=None)),
+                name="proposal_reject_reason",
             ),
         ]
 
@@ -204,6 +234,52 @@ class ProposalOrmRepository:
         )
         return status
 
+    def lock_requester(self, proposal_id: UUID) -> str | None:
+        # Each proposal write starts with a lock on the root (D40). Concurrent writes queue here.
+        row = self._rows().select_for_update().filter(id=proposal_id).values("requested_by")
+        found = row.first()
+        return None if found is None else found["requested_by"]
+
+    def approve(self, proposal_id: UUID, approver: str) -> list[UUID] | None:
+        # Only a pending proposal takes an approval, so one approve wins (I9, D8).
+        pending = self._rows().filter(id=proposal_id, status=ProposalStatus.PENDING.value)
+        try:
+            with transaction.atomic():
+                changed = pending.update(
+                    status=ProposalStatus.APPROVED.value,
+                    approved_by=approver,
+                    approved_at=Now(),
+                    updated_at=Now(),
+                )
+        except IntegrityError as error:
+            if violated_constraint(error) == FOUR_EYES:
+                raise ForbiddenError(
+                    "an approver cannot approve a proposal they requested"
+                ) from error
+            raise
+        if not changed:
+            return None
+        return self._exception_ids(proposal_id)
+
+    def reject(self, proposal_id: UUID, reason: RejectReason) -> bool:
+        pending = self._rows().filter(id=proposal_id, status=ProposalStatus.PENDING.value)
+        changed = pending.update(
+            status=ProposalStatus.REJECTED.value, reject_reason=reason.text, updated_at=Now()
+        )
+        return bool(changed)
+
+    def mark_stale(self, proposal_id: UUID) -> list[UUID] | None:
+        pending = self._rows().filter(id=proposal_id, status=ProposalStatus.PENDING.value)
+        if not pending.update(status=ProposalStatus.STALE.value, updated_at=Now()):
+            return None
+        return self._exception_ids(proposal_id)
+
+    def _exception_ids(self, proposal_id: UUID) -> list[UUID]:
+        rows = ProposalExceptionRow.objects.filter(
+            tenant_id=self._tenant_id, proposal_id=proposal_id
+        )
+        return list(rows.order_by("exception_id").values_list("exception_id", flat=True))
+
     def _take_slot(self, requested_by: str) -> UUID:
         day = _utc_today()
         for _ in range(DAILY_QUOTA):
@@ -261,7 +337,17 @@ class ProposalOrmQuery:
 
     def _items(self, rows) -> list[ProposalItem]:
         proposals = list(
-            rows.values("id", "status", "requested_by", "quota_slot", "failed_reason", "created_at")
+            rows.values(
+                "id",
+                "status",
+                "requested_by",
+                "quota_slot",
+                "failed_reason",
+                "approved_by",
+                "approved_at",
+                "reject_reason",
+                "created_at",
+            )
         )
         ids = [row["id"] for row in proposals]
         exceptions: dict[UUID, list[ProposalExceptionItem]] = defaultdict(list)
@@ -294,6 +380,9 @@ class ProposalOrmQuery:
                 requested_by=row["requested_by"],
                 quota_slot=row["quota_slot"],
                 failed_reason=_failed_reason(row["failed_reason"]),
+                approved_by=row["approved_by"],
+                approved_at=row["approved_at"],
+                reject_reason=row["reject_reason"],
                 created_at=row["created_at"],
                 exceptions=exceptions[row["id"]],
                 actions=actions[row["id"]],

@@ -2,10 +2,10 @@ from collections.abc import Sequence
 from typing import Protocol
 
 from payables.domain.checks.jobs import CheckBill
-from payables.domain.proposals.proposals import DraftFixProposal
+from payables.domain.proposals.proposals import ApplyFixProposal, DraftFixProposal
 from payables.domain.purchase_orders import PurchaseOrderAdded
 
-type Message = CheckBill | PurchaseOrderAdded | DraftFixProposal
+type Message = CheckBill | PurchaseOrderAdded | DraftFixProposal | ApplyFixProposal
 
 
 class Outbox(Protocol):

@@ -2,7 +2,9 @@ import pytest
 from django.db import IntegrityError, ProgrammingError, connection, connections, transaction
 
 from payables.adapters.orm.tenants import tenant_transaction
+from tests.approval_data import drafting_proposal
 from tests.check_data import (
+    C9,
     add_bill,
     check,
     exception_id,
@@ -94,3 +96,50 @@ def test_d35_app_role_deletes_system_resolve(committed_db):
     plant_resolution(e2, "system", "system", None)
 
     assert _app_sql("DELETE FROM resolution WHERE exception_id = %s", [e2]) == 1
+
+
+PROPOSAL_RESOLUTION = """
+INSERT INTO resolution (exception_id, tenant_id, kind, actor, reason, proposal_id, created_at)
+SELECT id, tenant_id, %s, %s, %s, %s, now() FROM exception WHERE id = %s
+"""
+
+
+def _plant_with_proposal(exception, kind, actor, reason, proposal) -> None:
+    with transaction.atomic(using="owner"), connections["owner"].cursor() as cursor:
+        cursor.execute(PROPOSAL_RESOLUTION, [kind, actor, reason, proposal, exception])
+
+
+@pytest.mark.parametrize(
+    ("kind", "actor", "reason"),
+    [
+        ("proposal", "system", None),
+        ("proposal", " ", None),
+        ("proposal", "a1", "Agreed with supplier"),
+        ("ignore", "c1", "Agreed with supplier"),
+        ("system", "system", None),
+    ],
+)
+def test_i8_proposal_resolution_needs_approver_and_proposal_only(committed_db, kind, actor, reason):
+    e2 = _e2()
+    p1 = drafting_proposal([e2])
+
+    with pytest.raises(IntegrityError, match="resolution_kind_fields"):
+        _plant_with_proposal(e2, kind, actor, reason, p1)
+
+
+def test_i8_proposal_resolution_with_approver_and_proposal_accepted(committed_db):
+    e2 = _e2()
+    p1 = drafting_proposal([e2])
+
+    _plant_with_proposal(e2, "proposal", "a1", None, p1)
+
+    assert resolutions_of(e2) == [("proposal", "a1", None)]
+
+
+def test_i1_resolution_refers_to_proposal_of_same_tenant(committed_db):
+    e2 = _e2()
+    e9 = _e2(T2)
+    p9 = drafting_proposal([e9], requested_by=C9)
+
+    with pytest.raises(IntegrityError, match="resolution_tenant_proposal_id_fkey"):
+        _plant_with_proposal(e2, "proposal", "a1", None, p9)

@@ -2,7 +2,7 @@ import pytest
 
 from payables.adapters.orm.exceptions import ExceptionOrmRepository, ResolutionOrmRepository
 from payables.application.exceptions import ignore_exception
-from payables.domain.errors import ConflictError
+from payables.domain.errors import ResolutionExistsError
 from tests.check_data import (
     C1,
     add_bill,
@@ -39,7 +39,7 @@ def test_i7_two_ignores_of_e1_one_resolution(committed_db):
 
     result = race(T1, _ignore(e1, "First"), _ignore(e1, "Second"))
 
-    assert [type(error) for error in result.errors] == [ConflictError]
+    assert [type(error) for error in result.errors] == [ResolutionExistsError]
     assert resolutions_of(e1) == [("ignore", "c1", "First")]
 
 
@@ -61,5 +61,5 @@ def test_i7_recheck_then_ignore_e1_409(committed_db):
 
     result = race(T1, recheck, _ignore(e1, "Agreed with supplier"))
 
-    assert [type(error) for error in result.errors] == [ConflictError]
+    assert [type(error) for error in result.errors] == [ResolutionExistsError]
     assert resolutions_of(e1) == [("system", "system", None)]
