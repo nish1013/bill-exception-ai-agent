@@ -78,8 +78,14 @@ def channel_layer_prefix() -> str:
     worker = os.environ.get("PYTEST_XDIST_WORKER", "main")
     prefix = f"asgi_test_{worker}"
     settings.CHANNEL_LAYERS["default"]["CONFIG"]["prefix"] = prefix
-    channel_layers.backends.clear()
     return prefix
+
+
+@pytest.fixture(autouse=True)
+def fresh_channel_layer(channel_layer_prefix: str) -> None:
+    # Each test runs its sockets on a new event loop. A channels_redis layer keeps
+    # asyncio locks bound to the loop that first waited on them, so no layer outlives a test.
+    channel_layers.backends.clear()
 
 
 @pytest.fixture
