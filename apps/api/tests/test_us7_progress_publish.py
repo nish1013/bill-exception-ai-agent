@@ -8,8 +8,8 @@ from channels_redis.core import RedisChannelLayer
 from payables.adapters.channels import ChannelsConsoleEvents
 from payables.application.checks import ConsoleEvent
 from payables.domain.checks.jobs import BillCheckProgress
-from payables.entrypoints.tasks import check_bill as check_bill_entrypoint
-from payables.entrypoints.tasks.check_bill import check_bill_task
+from payables.entrypoints import tasks as check_bill_entrypoint
+from payables.entrypoints.tasks import check_bill_task
 from tests.check_data import add_bill, check, start_job
 from tests.concurrency import owner_count
 from tests.socket import events_socket

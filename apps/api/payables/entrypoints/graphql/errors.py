@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import Any
 
 from graphql import GraphQLError
@@ -13,9 +14,15 @@ from payables.domain.errors import (
     RateLimitedError,
     ValidationError,
 )
-from payables.entrypoints.graphql.error_code import ErrorCode
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class ErrorCode:
+    code: str
+    status: int
+
 
 UNAUTHENTICATED = ErrorCode("UNAUTHENTICATED", 401)
 RATE_LIMITED = ErrorCode("RATE_LIMITED", 429)

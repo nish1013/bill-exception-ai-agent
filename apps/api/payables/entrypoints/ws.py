@@ -1,4 +1,5 @@
 import logging
+import re
 import time
 from typing import Any
 from urllib.parse import parse_qs
@@ -6,6 +7,7 @@ from uuid import UUID
 
 from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
+from django.urls import path
 from jwt import PyJWKClientConnectionError
 
 from payables.adapters.channels import tenant_group
@@ -18,6 +20,7 @@ from payables.adapters.identity import (
 logger = logging.getLogger(__name__)
 
 TOKEN_EXPIRED = 4401
+TOKEN_PARAM = re.compile(r"(token=)[^&\s\"']+")
 
 
 def now() -> float:
@@ -63,3 +66,20 @@ class EventsConsumer(AsyncJsonWebsocketConsumer):
         if not token:
             raise InvalidTokenError("no token")
         return token
+
+
+class RedactTokenFilter(logging.Filter):
+    """The socket URL carries the JWT. Server logs keep the path and drop the token."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.msg = _redact(record.msg)
+        if isinstance(record.args, tuple):
+            record.args = tuple(_redact(arg) for arg in record.args)
+        return True
+
+
+def _redact(value: Any) -> Any:
+    return TOKEN_PARAM.sub(r"\1[redacted]", value) if isinstance(value, str) else value
+
+
+websocket_urlpatterns = [path("ws/events/", EventsConsumer.as_asgi())]

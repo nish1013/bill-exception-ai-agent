@@ -27,3 +27,11 @@ class ExceptionType(graphene.ObjectType):
 
     def resolve_status(root: InboxItem, info) -> str:
         return root.status.value
+
+
+class ExceptionListType(graphene.ObjectType):
+    class Meta:
+        name = "ExceptionList"
+
+    items = graphene.List(graphene.NonNull(ExceptionType), required=True)
+    total_count = graphene.Int(required=True)

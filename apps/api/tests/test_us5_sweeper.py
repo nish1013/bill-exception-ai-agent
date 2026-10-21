@@ -4,7 +4,7 @@ from payables.adapters.orm.checks import CheckJobOrmRepository
 from payables.adapters.orm.outbox import OutboxOrmRepository
 from payables.adapters.orm.tenants import tenant_transaction
 from payables.application.checks import requeue_stale_check_job
-from payables.entrypoints.relay.sweeper import sweep_stale_check_jobs
+from payables.entrypoints.relay import sweep_stale_check_jobs
 from tests.check_data import add_bill, check, start_job
 from tests.concurrency import owner_count
 from tests.tenants import T1

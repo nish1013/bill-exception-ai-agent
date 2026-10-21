@@ -2,7 +2,7 @@ from django.urls import path
 
 from payables.entrypoints.graphql.schema import schema
 from payables.entrypoints.graphql.view import TenantGraphQLView
-from payables.entrypoints.rest.health import healthz, readyz
+from payables.entrypoints.rest import healthz, readyz
 
 urlpatterns = [
     path("healthz", healthz),

@@ -6,7 +6,7 @@ from asgiref.sync import async_to_sync, sync_to_async
 
 from payables.adapters.channels import ChannelsConsoleEvents
 from payables.domain.checks.jobs import BillCheckProgress
-from payables.entrypoints.ws import events_consumer
+from payables.entrypoints import ws as events_consumer
 from tests.socket import events_socket
 from tests.tenants import T1, T2
 

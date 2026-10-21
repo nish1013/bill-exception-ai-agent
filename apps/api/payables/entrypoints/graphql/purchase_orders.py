@@ -1,7 +1,7 @@
 import graphene
 
 from payables.domain.purchase_orders import PurchaseOrder
-from payables.entrypoints.graphql.minor_units import MinorUnits
+from payables.entrypoints.graphql.scalars import MinorUnits
 
 
 class PurchaseOrderType(graphene.ObjectType):

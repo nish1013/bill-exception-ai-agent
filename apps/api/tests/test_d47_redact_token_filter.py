@@ -1,6 +1,6 @@
 import logging
 
-from payables.entrypoints.ws.redact_token_filter import RedactTokenFilter
+from payables.entrypoints.ws import RedactTokenFilter
 
 
 def _record(msg: str, *args) -> logging.LogRecord:

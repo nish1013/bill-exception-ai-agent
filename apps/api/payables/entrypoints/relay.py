@@ -7,8 +7,12 @@ from dataclasses import dataclass
 
 from django.db import close_old_connections
 
+from payables.adapters.orm.checks import CheckJobOrmRepository, stale_check_jobs
+from payables.adapters.orm.outbox import OutboxOrmRepository
+from payables.adapters.orm.tenants import tenant_transaction
 from payables.adapters.outbox import BATCH_SIZE, OutboxRelay
-from payables.entrypoints.relay.sweeper import sweep_stale_check_jobs
+from payables.application.checks import requeue_stale_check_job
+from payables.domain.checks.jobs import QUEUED_STALE_AFTER
 
 logger = logging.getLogger(__name__)
 
@@ -64,3 +68,16 @@ class RelayLoop:
             return
         if count:
             logger.info("relay %s: %d", name, count)
+
+
+def sweep_stale_check_jobs() -> int:
+    requeued = 0
+    for tenant_id, job_id in stale_check_jobs(QUEUED_STALE_AFTER):
+        with tenant_transaction(tenant_id):
+            requeued += requeue_stale_check_job(
+                tenant_id,
+                job_id,
+                CheckJobOrmRepository(tenant_id),
+                OutboxOrmRepository(tenant_id),
+            )
+    return requeued
