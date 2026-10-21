@@ -89,6 +89,8 @@ type CheckJob {
   billCount: Int!
   okCount: Int!
   failedCount: Int!
+  seq: Int!
+  percent: Int!
 }
 
 type Mutation {

@@ -10,6 +10,9 @@ dependencies = [
     "uvicorn>=0.32,<1",
     "graphene-django>=3.2,<4",
     "pyjwt[crypto]>=2.9,<3",
+    "channels>=4.2,<5",
+    "channels-redis>=4.2,<5",
+    "websockets>=13,<16",
 ]
 
 [dependency-groups]
@@ -18,6 +21,7 @@ dev = [
     "pytest-django>=4.9,<5",
     "ruff>=0.8,<1",
     "import-linter>=2.1,<3",
+    "pytest-xdist>=3.6,<4",
 ]
 
 [tool.uv]
@@ -26,6 +30,9 @@ package = false
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings"
 testpaths = ["tests"]
+# One process per CPU. Each gets its own test database and broker vhost. A chunk of one test
+# keeps the slow broker tests on different workers.
+addopts = "-n auto --maxschedchunk 1"
 
 [tool.ruff]
 line-length = 100

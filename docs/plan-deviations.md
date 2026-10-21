@@ -199,3 +199,30 @@ Plan:     D44 says that the handler starts a check job for the bills with an ope
 Built:    `recheck_jobs` in `payables/domain/checks/recheck_job.py` makes one job for each 500 bills. Each job id is `uuid5(event_id, n)`, so a repeat event finds the first job and starts nothing.
 Why:      One job of 501 bills breaks the job limit, and the handler would fail to the DLQ with each exception still open. `test_i16_recheck_of_1001_bills_in_three_jobs` gives jobs of 500, 500 and 1.
 Undo:     Start one job of all the bills in `apps/api/payables/application/recheck_po_mismatches.py`. A PO with more than 500 open mismatches then fails to the DLQ.
+
+## D23. The job row gives the progress percent, and Redis holds no progress key (PR 7, 2026-10-21)
+
+In short: The percent is the checked bills of the job row divided by its bill count. Redis carries the console events and stores no progress value.
+
+Plan:     PR 7 lists "Redis progress". D18 and the domain model give the job progress percent a Redis cache, with the status in the job row.
+Built:    `CheckJob.percent` is `seq * 100 // bill_count`, and `seq` is the count of checked bills of the job. `checkJob` returns `seq` and `percent` from Postgres. Redis holds only the Channels layer messages, which expire after 60 s.
+Why:      Each checked bill already writes its result to `check_job_bill` (PR 4), so the row has the count with no extra write. A second copy in Redis can disagree with the row, and the board reads the row on each socket open (D18).
+Undo:     Write `seq` and `percent` to a Redis key in `payables/adapters/channels/channels_console_events.py`, and read that key in `resolve_check_job`.
+
+## D24. `BillCheckCompleted` carries `seq` and the final status (PR 7, 2026-10-21)
+
+In short: The completed event has `jobId`, `seq`, `status` and `failedCount`. The status is `completed` or `failed`.
+
+Plan:     The console event table gives `BillCheckCompleted` the fields `job_id` and failed count.
+Built:    `BillCheckCompleted(job_id, seq, status, failed_count)` in `payables/domain/checks/bill_check_completed.py`. The worker sends it after the last `BillCheckProgress` of the job.
+Why:      A job with no good bill ends as `failed` (D41), and the failed count alone cannot show that. With `seq`, the board drops a late progress event of the same job (D19).
+Undo:     Remove `seq` and `status` from the event and its message. The board then reads the job row to get the final status.
+
+## D25. The event socket refuses a bad token, closes after expiry, and keeps the token out of logs (PR 7, 2026-10-21)
+
+In short: A socket with no valid token is refused at the handshake. An open socket closes with code 4401 on its first event after the token expires.
+
+Plan:     The API section gives `ws/events/?token=<jwt>` and says that the consumer sends only the token's tenant events. It gives no rule for a bad or expired token. The 401 row of the error table is for GraphQL.
+Built:    The consumer verifies the token with the GraphQL verifier and refuses the handshake (HTTP 403) when the token is missing, bad or has no `tenant_id`. It joins the group of the token's tenant only. A filter removes the token from the uvicorn log lines, and nginx logs `/ws/events/` with no query.
+Why:      A browser cannot read the status of a refused handshake, so 403 and 401 give the same result: the console tries again and then signs in again. A token in a URL is written to each access log, and a log reader must not get a valid token.
+Undo:     Remove the expiry check in `payables/entrypoints/ws/events_consumer.py`, `RedactTokenFilter` in `config/asgi.py`, and the `no_query` log format in `web/nginx/default.conf.template`.

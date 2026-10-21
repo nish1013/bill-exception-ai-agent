@@ -17,7 +17,11 @@ class Command(BaseCommand):
     help = "Create the demo tenants. A second run changes nothing (D55)."
 
     def handle(self, *args, **options) -> None:
-        # Tenants are created outside the product, so the owner role writes them (US1).
-        with connections["owner"].cursor() as cursor:
-            for tenant_id, name in DEMO_TENANTS.items():
-                cursor.execute(INSERT_TENANT, [tenant_id, name])
+        insert_tenants(DEMO_TENANTS)
+
+
+def insert_tenants(tenants: dict[str, str]) -> None:
+    # Tenants are created outside the product, so the owner role writes them (US1).
+    with connections["owner"].cursor() as cursor:
+        for tenant_id, name in tenants.items():
+            cursor.execute(INSERT_TENANT, [tenant_id, name])

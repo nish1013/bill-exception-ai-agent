@@ -9,10 +9,12 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from urllib.parse import urlsplit
 
+from django.conf import settings
 from django.db import connections
 from kombu import Connection
 
-TEST_VHOST = "tests"
+# Each xdist worker gets its own vhost, so no worker purges or takes the messages of another.
+TEST_VHOST = f"tests_{os.environ.get('PYTEST_XDIST_WORKER', 'main')}"
 MANAGEMENT_PORT = 15672
 WAIT_SECONDS = 30
 STOP_SECONDS = 10
@@ -81,6 +83,7 @@ def process_env(broker_url: str, **extra: str) -> dict[str, str]:
     return os.environ | {
         "POSTGRES_DB": connections["owner"].settings_dict["NAME"],
         "CELERY_BROKER_URL": broker_url,
+        "CHANNEL_LAYER_PREFIX": settings.CHANNEL_LAYERS["default"]["CONFIG"]["prefix"],
         **extra,
     }
 

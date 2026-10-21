@@ -39,6 +39,19 @@ MIGRATION_MODULES = {"payables": "payables.adapters.orm.migrations"}
 
 REDIS_URL = os.environ["REDIS_URL"]
 
+# Console events go through Redis to the socket consumers (D47). The prefix keeps test runs apart.
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [REDIS_URL],
+            "prefix": os.environ.get("CHANNEL_LAYER_PREFIX", "asgi"),
+            "expiry": 60,
+            "capacity": 100,
+        },
+    }
+}
+
 CELERY_BROKER_URL = os.environ["CELERY_BROKER_URL"]
 # At least once (D43): ack after the task, requeue when the worker dies, confirm each publish.
 CELERY_TASK_ACKS_LATE = True

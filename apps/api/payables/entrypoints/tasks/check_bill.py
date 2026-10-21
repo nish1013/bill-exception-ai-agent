@@ -5,6 +5,7 @@ from celery.exceptions import Reject
 from django.conf import settings
 
 from payables.adapters.broker.routes import CHECK_BILL_TASK
+from payables.adapters.channels.channels_console_events import ChannelsConsoleEvents
 from payables.adapters.orm.check_job_repository import CheckJobOrmRepository
 from payables.adapters.orm.checked_bill_repository import CheckedBillOrmRepository
 from payables.adapters.orm.exception_repository import ExceptionOrmRepository
@@ -12,7 +13,9 @@ from payables.adapters.orm.purchase_order_repository import PurchaseOrderOrmRepo
 from payables.adapters.orm.resolution_repository import ResolutionOrmRepository
 from payables.adapters.orm.tenancy import tenant_transaction
 from payables.application.check_bill import check_bill, record_check_result
+from payables.application.publish_check_progress import publish_check_progress
 from payables.domain.checks.check_bill_command import CheckBill
+from payables.domain.checks.check_job import CheckJob
 from payables.domain.checks.check_result import CheckResult
 
 MAX_ATTEMPTS = 3
@@ -32,7 +35,7 @@ def check_bill_task(self: Task, tenant_id: str, job_id: str, bill_id: str) -> No
     jobs = CheckJobOrmRepository(command.tenant_id)
     try:
         with tenant_transaction(command.tenant_id, settings.CHECK_LOCK_TIMEOUT_MS):
-            check_bill(
+            job = check_bill(
                 command,
                 CheckedBillOrmRepository(command.tenant_id),
                 PurchaseOrderOrmRepository(command.tenant_id),
@@ -45,5 +48,13 @@ def check_bill_task(self: Task, tenant_id: str, job_id: str, bill_id: str) -> No
             raise self.retry(exc=error, countdown=2**self.request.retries) from error
         # The third failure: the bill is failed in its job, and the message goes to the DLQ (D17).
         with tenant_transaction(command.tenant_id):
-            record_check_result(command, CheckResult.FAILED, type(error).__name__, jobs)
+            job = record_check_result(command, CheckResult.FAILED, type(error).__name__, jobs)
+        _publish_progress(command, job)
         raise Reject(error, requeue=False) from error
+    _publish_progress(command, job)
+
+
+def _publish_progress(command: CheckBill, job: CheckJob | None) -> None:
+    # After the commit: an event never shows a result that a rollback removed.
+    if job is not None:
+        publish_check_progress(command.tenant_id, job, ChannelsConsoleEvents())

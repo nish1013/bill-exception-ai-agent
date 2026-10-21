@@ -5,6 +5,7 @@ from payables.application.ports.purchase_order_repository import PurchaseOrderRe
 from payables.application.ports.resolution_repository import ResolutionRepository
 from payables.domain.checks.bill_checks import run_rules
 from payables.domain.checks.check_bill_command import CheckBill
+from payables.domain.checks.check_job import CheckJob
 from payables.domain.checks.check_result import CheckResult
 from payables.domain.checks.checked_bill import CheckedBill
 from payables.domain.checks.exception_changes import changes_after_check
@@ -18,27 +19,28 @@ def check_bill(
     exceptions: ExceptionRepository,
     resolutions: ResolutionRepository,
     jobs: CheckJobRepository,
-) -> None:
+) -> CheckJob | None:
     if not jobs.is_pending(command.job_id, command.bill_id):
-        return
+        return None
     bill = bills.get(command.bill_id)
     findings = run_rules(bill, bills.earlier_alike(bill), _purchase_order(bill, purchase_orders))
     exceptions.add_missing(bill.id, findings)
     changes = changes_after_check(findings, exceptions.on_bill(bill.id))
     resolutions.resolve_by_system(changes.to_resolve)
     resolutions.reopen(changes.to_reopen)
-    record_check_result(command, CheckResult.OK, None, jobs)
+    return record_check_result(command, CheckResult.OK, None, jobs)
 
 
 def record_check_result(
     command: CheckBill, result: CheckResult, error: str | None, jobs: CheckJobRepository
-) -> None:
+) -> CheckJob | None:
     job = jobs.lock(command.job_id)
     # A repeat delivery finds the result already written (D42).
     if job is None or not jobs.is_pending(command.job_id, command.bill_id):
-        return
+        return None
     job.record(result)
     jobs.save_result(job, command.bill_id, result, error)
+    return job
 
 
 def _purchase_order(

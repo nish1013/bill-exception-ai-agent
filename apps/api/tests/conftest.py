@@ -1,10 +1,16 @@
+import fcntl
 import json
+import os
+import tempfile
 import urllib.parse
 import urllib.request
 from collections.abc import Callable, Iterator
+from contextlib import contextmanager
+from pathlib import Path
 from typing import Any
 
 import pytest
+from channels.layers import channel_layers
 from django.conf import settings
 from django.db import connections
 from django.test import Client
@@ -31,26 +37,44 @@ TABLES = (
 
 
 @pytest.fixture(scope="session")
-def django_db_setup(django_test_environment, django_db_blocker) -> Iterator[None]:
+def django_db_setup(
+    django_test_environment, django_db_blocker, django_db_modify_db_settings, django_db_keepdb
+) -> Iterator[None]:
     # The app role cannot create a database, so the owner creates and migrates the test database.
+    # django_db_modify_db_settings gives each xdist worker its own database name.
     owner = connections["owner"]
     app = connections["default"]
     original_name = owner.settings_dict["NAME"]
-    with django_db_blocker.unblock():
-        owner.creation.create_test_db(verbosity=0, autoclobber=True, serialize=False)
+    with django_db_blocker.unblock(), _one_migration_at_a_time():
+        owner.creation.create_test_db(
+            verbosity=0, autoclobber=True, serialize=False, keepdb=django_db_keepdb
+        )
         app.creation.set_as_test_mirror(owner.settings_dict)
         connections["relay"].creation.set_as_test_mirror(owner.settings_dict)
         with owner.cursor() as cursor:
+            if django_db_keepdb:
+                _delete_rows(cursor)
             for tenant_id, name in NAMES.items():
                 cursor.execute(
-                    "INSERT INTO tenant (id, name, created_at) VALUES (%s, %s, now())",
+                    "INSERT INTO tenant (id, name, created_at) VALUES (%s, %s, now()) "
+                    "ON CONFLICT (id) DO NOTHING",
                     [tenant_id, name],
                 )
     yield
     with django_db_blocker.unblock():
         app.close()
         connections["relay"].close()
-        owner.creation.destroy_test_db(original_name, verbosity=0)
+        owner.creation.destroy_test_db(original_name, verbosity=0, keepdb=django_db_keepdb)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def channel_layer_prefix() -> str:
+    # Each xdist worker sends and reads console events under its own Redis prefix.
+    worker = os.environ.get("PYTEST_XDIST_WORKER", "main")
+    prefix = f"asgi_test_{worker}"
+    settings.CHANNEL_LAYERS["default"]["CONFIG"]["prefix"] = prefix
+    channel_layers.backends.clear()
+    return prefix
 
 
 @pytest.fixture(scope="session")
@@ -72,6 +96,20 @@ def token_for() -> Callable[[str], str]:
         return tokens[user]
 
     return fetch
+
+
+@contextmanager
+def _one_migration_at_a_time() -> Iterator[None]:
+    # The migrations alter the app and relay roles, which belong to the cluster. Two workers that
+    # alter one role at the same time fail with "tuple concurrently updated".
+    with open(Path(tempfile.gettempdir()) / "payables-test-migrate.lock", "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        yield
+
+
+def _delete_rows(cursor) -> None:
+    for table in TABLES:
+        cursor.execute(f"DELETE FROM {table}")
 
 
 def _token_request(form: bytes) -> urllib.request.Request:
@@ -98,8 +136,7 @@ def committed_db(django_db_setup, django_db_blocker) -> Iterator[None]:
     with django_db_blocker.unblock():
         yield
         with connections["owner"].cursor() as cursor:
-            for table in TABLES:
-                cursor.execute(f"DELETE FROM {table}")
+            _delete_rows(cursor)
 
 
 @pytest.fixture

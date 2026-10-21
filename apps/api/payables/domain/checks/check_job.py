@@ -3,12 +3,15 @@ from dataclasses import dataclass
 from datetime import timedelta
 from uuid import UUID
 
+from payables.domain.checks.bill_check_completed import BillCheckCompleted
+from payables.domain.checks.bill_check_progress import BillCheckProgress
 from payables.domain.checks.check_job_status import CheckJobStatus
 from payables.domain.checks.check_result import CheckResult
 from payables.domain.errors import ValidationError
 
 MAX_BILLS = 500
 QUEUED_STALE_AFTER = timedelta(minutes=5)
+DONE_STATUSES = frozenset({CheckJobStatus.COMPLETED, CheckJobStatus.FAILED})
 
 
 @dataclass
@@ -31,6 +34,27 @@ class CheckJob:
     @property
     def pending_count(self) -> int:
         return self.bill_count - self.ok_count - self.failed_count
+
+    @property
+    def seq(self) -> int:
+        # Each recorded result adds one under the job lock, so seq only goes up (D19).
+        return self.ok_count + self.failed_count
+
+    @property
+    def percent(self) -> int:
+        return self.seq * 100 // self.bill_count
+
+    @property
+    def is_done(self) -> bool:
+        return self.status in DONE_STATUSES
+
+    def progress_events(self) -> list[BillCheckProgress | BillCheckCompleted]:
+        events: list[BillCheckProgress | BillCheckCompleted] = [
+            BillCheckProgress(self.id, self.seq, self.percent)
+        ]
+        if self.is_done:
+            events.append(BillCheckCompleted(self.id, self.seq, self.status, self.failed_count))
+        return events
 
     def record(self, result: CheckResult) -> None:
         # The caller holds the job lock, so the counts include every committed result (I13).

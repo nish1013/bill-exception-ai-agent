@@ -1,7 +1,7 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 
 import {
-  C1,
+  clerkOf,
   exceptionRows,
   ingestBill,
   runSupplier,
@@ -10,6 +10,9 @@ import {
   test,
   type BillEntry,
 } from "./demo";
+import { SPEC_TENANTS } from "./tenants";
+
+const C1 = clerkOf(SPEC_TENANTS.rulesIgnore.home);
 
 const RULES = ["duplicate", "possible_duplicate", "po_mismatch", "missing_vat", "missing_receipt"];
 
