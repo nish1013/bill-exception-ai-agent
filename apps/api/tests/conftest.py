@@ -65,11 +65,19 @@ def token_for() -> Callable[[str], str]:
                     "scope": user,
                 }
             ).encode()
-            with urllib.request.urlopen(f"{settings.OIDC_ISSUER}/token", form, timeout=5) as r:
+            with urllib.request.urlopen(_token_request(form), timeout=5) as r:
                 tokens[user] = json.load(r)["access_token"]
         return tokens[user]
 
     return fetch
+
+
+def _token_request(form: bytes) -> urllib.request.Request:
+    # The API reaches the provider at another host than the browser. The provider takes the
+    # issuer from the Host header, so the token gets the issuer that the browser sees.
+    provider = settings.OIDC_JWKS_URL.removesuffix("/jwks")
+    host = urllib.parse.urlsplit(settings.OIDC_ISSUER).netloc
+    return urllib.request.Request(f"{provider}/token", form, headers={"Host": host})
 
 
 @pytest.fixture
