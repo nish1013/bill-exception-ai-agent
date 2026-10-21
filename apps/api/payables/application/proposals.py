@@ -1,7 +1,8 @@
 from collections.abc import Iterable, Sequence
+from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Protocol
+from typing import NoReturn, Protocol
 from uuid import UUID
 
 from payables.application.authorization import require_role
@@ -12,7 +13,14 @@ from payables.domain.access import Principal, Role
 from payables.domain.audit import AuditEntry
 from payables.domain.checks.exceptions import ResolutionKind
 from payables.domain.checks.rules import Rule
-from payables.domain.errors import NotFoundError, RateLimitedError, ValidationError
+from payables.domain.errors import (
+    ConflictError,
+    NotFoundError,
+    RateLimitedError,
+    ResolutionExistsError,
+    StaleProposalError,
+    ValidationError,
+)
 from payables.domain.proposals.agent import (
     TOOL_SPECS,
     AgentRun,
@@ -32,11 +40,17 @@ from payables.domain.proposals.agent import (
 from payables.domain.proposals.proposals import (
     REQUESTS_PER_MINUTE,
     ActionKind,
+    ApplyFixProposal,
     DraftFixProposal,
     FailedReason,
     FixProposalReady,
     ProposalStatus,
+    RejectReason,
+    approved_entry,
     exceptions_to_fix,
+    rejected_entry,
+    require_second_person,
+    stale_entry,
 )
 
 
@@ -63,6 +77,9 @@ class ProposalItem:
     requested_by: str
     quota_slot: int
     failed_reason: FailedReason | None
+    approved_by: str | None
+    approved_at: datetime | None
+    reject_reason: str | None
     created_at: datetime
     exceptions: list[ProposalExceptionItem]
     actions: list[ProposalActionItem]
@@ -75,6 +92,14 @@ class ProposalRepository(Protocol):
 
     def finish_draft(self, proposal_id: UUID, outcome: DraftOutcome) -> ProposalStatus | None: ...
 
+    def lock_requester(self, proposal_id: UUID) -> str | None: ...
+
+    def approve(self, proposal_id: UUID, approver: str) -> list[UUID] | None: ...
+
+    def reject(self, proposal_id: UUID, reason: RejectReason) -> bool: ...
+
+    def mark_stale(self, proposal_id: UUID) -> list[UUID] | None: ...
+
 
 class ProposalQuery(Protocol):
     def find(self, proposal_id: UUID) -> ProposalItem | None: ...
@@ -84,6 +109,16 @@ class ProposalQuery(Protocol):
 
 class ExceptionResolutions(Protocol):
     def resolutions(self, exception_ids: list[UUID]) -> dict[UUID, ResolutionKind | None]: ...
+
+
+class ProposalResolutions(Protocol):
+    def resolve_by_proposal(
+        self, exception_ids: list[UUID], proposal_id: UUID, actor: str
+    ) -> None: ...
+
+
+class Savepoint(Protocol):
+    def __call__(self) -> AbstractContextManager[object]: ...
 
 
 class AuditLog(Protocol):
@@ -121,6 +156,48 @@ def request_fix_proposal(
     proposal_id = proposals.add(principal.subject, to_fix)
     outbox.add([DraftFixProposal(principal.tenant_id, proposal_id)])
     return proposal_id
+
+
+def approve_fix_proposal(
+    principal: Principal,
+    proposal_id: UUID,
+    proposals: ProposalRepository,
+    resolutions: ProposalResolutions,
+    audit: AuditLog,
+    outbox: Outbox,
+    savepoint: Savepoint,
+) -> None:
+    require_role(principal, Role.APPROVER)
+    requested_by = _lock_requester(proposal_id, proposals)
+    require_second_person(requested_by, principal.subject)
+    try:
+        # A taken exception undoes the approve. The lock on the root stays held (D35, D40).
+        with savepoint():
+            exception_ids = proposals.approve(proposal_id, principal.subject)
+            if exception_ids is None:
+                raise ConflictError("the proposal is not pending")
+            resolutions.resolve_by_proposal(exception_ids, proposal_id, principal.subject)
+    except ResolutionExistsError as error:
+        _mark_stale(principal, proposal_id, proposals, audit, error)
+    audit.add(proposal_id, [approved_entry(principal.subject, requested_by, exception_ids)])
+    # The apply message commits with the approve (I14).
+    outbox.add([ApplyFixProposal(principal.tenant_id, proposal_id)])
+
+
+def reject_fix_proposal(
+    principal: Principal,
+    proposal_id: UUID,
+    reason: str,
+    proposals: ProposalRepository,
+    audit: AuditLog,
+) -> None:
+    # The requester can reject: a reject moves no money (US13).
+    require_role(principal, Role.APPROVER)
+    parsed = RejectReason.parse(reason)
+    _lock_requester(proposal_id, proposals)
+    if not proposals.reject(proposal_id, parsed):
+        raise ConflictError("the proposal is not pending")
+    audit.add(proposal_id, [rejected_entry(principal.subject, parsed)])
 
 
 def get_proposal(proposal_id: UUID, proposals: ProposalQuery) -> ProposalItem:
@@ -186,3 +263,24 @@ def fail_draft(
 
 def publish_proposal_ready(tenant_id: UUID, ready: FixProposalReady, events: ConsoleEvents) -> None:
     events.publish(tenant_id, ready)
+
+
+def _lock_requester(proposal_id: UUID, proposals: ProposalRepository) -> str:
+    requested_by = proposals.lock_requester(proposal_id)
+    if requested_by is None:
+        raise NotFoundError("proposal not found")
+    return requested_by
+
+
+def _mark_stale(
+    principal: Principal,
+    proposal_id: UUID,
+    proposals: ProposalRepository,
+    audit: AuditLog,
+    cause: ResolutionExistsError,
+) -> NoReturn:
+    exception_ids = proposals.mark_stale(proposal_id)
+    if exception_ids is None:
+        raise ConflictError("the proposal is not pending") from cause
+    audit.add(proposal_id, [stale_entry(principal.subject, exception_ids)])
+    raise StaleProposalError("an exception of the proposal has a resolution") from cause

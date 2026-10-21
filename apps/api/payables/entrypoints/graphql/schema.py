@@ -1,7 +1,9 @@
 from uuid import UUID
 
 import graphene
+from django.db import transaction
 
+from payables.adapters.orm.audit import AuditOrmLog
 from payables.adapters.orm.bills import BillListOrmQuery, BillOrmRepository
 from payables.adapters.orm.checks import CheckedBillOrmRepository, CheckJobOrmRepository
 from payables.adapters.orm.exceptions import (
@@ -27,8 +29,10 @@ from payables.application.exceptions import (
 from payables.application.pages import ListPage
 from payables.application.proposals import (
     ProposalItem,
+    approve_fix_proposal,
     get_proposal,
     list_proposals,
+    reject_fix_proposal,
     request_fix_proposal,
 )
 from payables.application.purchase_orders import AddPurchaseOrderCommand, add_purchase_order
@@ -129,6 +133,15 @@ class Mutation(graphene.ObjectType):
         required=True,
         exception_ids=graphene.List(graphene.NonNull(graphene.UUID), required=True),
     )
+    approve_fix_proposal = graphene.Field(
+        ProposalType, required=True, proposal_id=graphene.UUID(required=True)
+    )
+    reject_fix_proposal = graphene.Field(
+        ProposalType,
+        required=True,
+        proposal_id=graphene.UUID(required=True),
+        reason=graphene.String(required=True),
+    )
 
     def resolve_register_supplier(root, info, name: str, vat_number: str | None = None) -> Supplier:
         principal = _principal(info)
@@ -193,6 +206,28 @@ class Mutation(graphene.ObjectType):
             ExceptionOrmRepository(tenant_id),
             ProposalOrmRepository(tenant_id),
             OutboxOrmRepository(tenant_id),
+        )
+        return get_proposal(proposal_id, ProposalOrmQuery(tenant_id))
+
+    def resolve_approve_fix_proposal(root, info, proposal_id: UUID) -> ProposalItem:
+        principal = _principal(info)
+        tenant_id = principal.tenant_id
+        approve_fix_proposal(
+            principal,
+            proposal_id,
+            ProposalOrmRepository(tenant_id),
+            ResolutionOrmRepository(tenant_id),
+            AuditOrmLog(tenant_id),
+            OutboxOrmRepository(tenant_id),
+            transaction.atomic,
+        )
+        return get_proposal(proposal_id, ProposalOrmQuery(tenant_id))
+
+    def resolve_reject_fix_proposal(root, info, proposal_id: UUID, reason: str) -> ProposalItem:
+        principal = _principal(info)
+        tenant_id = principal.tenant_id
+        reject_fix_proposal(
+            principal, proposal_id, reason, ProposalOrmRepository(tenant_id), AuditOrmLog(tenant_id)
         )
         return get_proposal(proposal_id, ProposalOrmQuery(tenant_id))
 

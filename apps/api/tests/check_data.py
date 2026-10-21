@@ -26,6 +26,15 @@ C1 = Principal(T1, Role.CLERK, "c1")
 C9 = Principal(T2, Role.CLERK, "c9")
 CLERKS = {T1: C1, T2: C9}
 
+BULK_BILLS = """
+INSERT INTO bill (id, tenant_id, supplier_id, invoice_number, invoice_number_norm, amount_minor,
+                  currency, issue_date, has_receipt, idempotency_key, payload_hash, created_at)
+SELECT gen_random_uuid(), %s, %s, 'INV-' || n, 'INV' || n, 100 + n, 'GBP', '2026-10-01', true,
+       'bulk-' || n, 'h', now()
+FROM generate_series(%s, %s) AS n
+RETURNING id
+"""
+
 
 def add_bill(key: str, tenant_id: UUID = T1, **changes) -> UUID:
     payload = replace(B1_PAYLOAD, **changes)
@@ -151,3 +160,11 @@ def resolutions_of(exception: UUID) -> list[tuple[str, str, str | None]]:
             "SELECT kind, actor, reason FROM resolution WHERE exception_id = %s", [exception]
         )
         return list(cursor.fetchall())
+
+
+def add_bulk_bills(count: int, first: int = 1) -> list:
+    with connections["owner"].cursor() as cursor:
+        cursor.execute("SELECT supplier_id FROM bill WHERE tenant_id = %s LIMIT 1", [T1])
+        supplier_id = cursor.fetchone()[0]
+        cursor.execute(BULK_BILLS, [T1, supplier_id, first, first + count - 1])
+        return [row[0] for row in cursor.fetchall()]

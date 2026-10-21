@@ -42,6 +42,10 @@ export function clerkOf(tenant: Tenant, username = "c1"): DemoUser {
   return { username, role: "clerk", tenant };
 }
 
+export function approverOf(tenant: Tenant, username = "a1"): DemoUser {
+  return { username, role: "approver", tenant };
+}
+
 export interface BillEntry {
   supplierName: string;
   invoiceNumber: string;

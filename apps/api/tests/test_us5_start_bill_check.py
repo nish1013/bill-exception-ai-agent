@@ -1,11 +1,12 @@
-import time
 import uuid
+from contextlib import ExitStack
 
 import pytest
 from django.db import connections, transaction
+from django.test.utils import CaptureQueriesContext
 
 from payables.adapters.orm.tenants import tenant_transaction
-from tests.check_data import add_bill, check, job_row, start_job
+from tests.check_data import add_bill, add_bulk_bills, check, job_row, start_job
 from tests.concurrency import owner_count
 from tests.ingest_data import error_of
 from tests.tenants import T1, T2
@@ -14,14 +15,6 @@ START = """
 mutation($ids: [UUID!]!) { startBillCheck(billIds: $ids) { id status billCount } }
 """
 VIEWER = "query { viewer { tenantId } }"
-BULK_BILLS = """
-INSERT INTO bill (id, tenant_id, supplier_id, invoice_number, invoice_number_norm, amount_minor,
-                  currency, issue_date, has_receipt, idempotency_key, payload_hash, created_at)
-SELECT gen_random_uuid(), %s, %s, 'INV-' || n, 'INV' || n, 100 + n, 'GBP', '2026-10-01', true,
-       'bulk-' || n, 'h', now()
-FROM generate_series(1, %s) AS n
-RETURNING id
-"""
 
 
 @pytest.fixture
@@ -37,12 +30,11 @@ def _started(response) -> dict:
     return response.json()["data"]["startBillCheck"]
 
 
-def _bulk_bills(count: int) -> list:
-    with connections["owner"].cursor() as cursor:
-        cursor.execute("SELECT supplier_id FROM bill WHERE tenant_id = %s LIMIT 1", [T1])
-        supplier_id = cursor.fetchone()[0]
-        cursor.execute(BULK_BILLS, [T1, supplier_id, count])
-        return [row[0] for row in cursor.fetchall()]
+def _statements(call) -> tuple:
+    with ExitStack() as stack:
+        captured = [stack.enter_context(CaptureQueriesContext(c)) for c in connections.all()]
+        response = call()
+    return response, sum(len(c.captured_queries) for c in captured)
 
 
 def test_us5_j1_queued_with_its_messages(committed_db, start):
@@ -106,7 +98,7 @@ def test_us5_approver_403(committed_db, start):
 
 def test_us5_501_bills_400(committed_db, start):
     add_bill("K1")
-    bills = _bulk_bills(501)
+    bills = add_bulk_bills(501)
 
     response = start(bills)
 
@@ -114,19 +106,19 @@ def test_us5_501_bills_400(committed_db, start):
     assert owner_count("check_job") == 0
 
 
-@pytest.mark.timing
-def test_us5_500_bills_under_500_ms(committed_db, graphql, token_for, start):
+def test_us5_500_bills_same_statement_count_as_5(committed_db, graphql, token_for, start):
+    # The 500 ms target for 500 bills is measured by `make bench` (D38).
     add_bill("K1")
-    bills = _bulk_bills(500)
+    few, many = add_bulk_bills(5), add_bulk_bills(500, first=6)
     graphql(VIEWER, token_for("c1"))
 
-    began = time.perf_counter()
-    response = start(bills)
-    elapsed = time.perf_counter() - began
+    few_response, few_statements = _statements(lambda: start(few))
+    many_response, many_statements = _statements(lambda: start(many))
 
-    assert _started(response)["billCount"] == 500
-    assert owner_count("outbox") == 500
-    assert elapsed < 0.5, f"startBillCheck took {elapsed * 1000:.0f} ms"
+    assert _started(few_response)["billCount"] == 5
+    assert _started(many_response)["billCount"] == 500
+    assert owner_count("outbox") == 505
+    assert many_statements == few_statements, f"5 bills: {few_statements}, 500: {many_statements}"
 
 
 def test_us5_j2_on_bill_of_running_j1(committed_db):

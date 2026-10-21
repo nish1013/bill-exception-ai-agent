@@ -28,10 +28,10 @@ GraphQL = Callable[..., Any]
 TABLES = (
     "audit",
     "proposal_action",
+    "resolution",
     "proposal_exception",
     "proposal",
     "outbox",
-    "resolution",
     "exception",
     "check_job_bill",
     "check_job",

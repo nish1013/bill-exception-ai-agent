@@ -27,3 +27,8 @@ export function failedReasonText(reason: string): string {
 export function isDrafting(status: string): boolean {
   return status === "drafting";
 }
+
+// Only a pending proposal takes an approve or a reject (US12, US13).
+export function canDecide(status: string): boolean {
+  return status === "pending";
+}

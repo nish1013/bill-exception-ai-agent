@@ -11,6 +11,8 @@ from payables.application.exceptions import InboxFilter, InboxItem
 from payables.application.pages import ListPage
 from payables.domain.access import SYSTEM_ACTOR
 from payables.domain.checks.exceptions import (
+    PROPOSAL_SYNCED_STATUS,
+    PROPOSAL_UNSYNCED_STATUS,
     WORST_FIRST,
     ExceptionStatus,
     IgnoreReason,
@@ -22,18 +24,26 @@ from payables.domain.checks.exceptions import (
     status_of,
 )
 from payables.domain.checks.rules import Finding, Rule
-from payables.domain.errors import ConflictError
+from payables.domain.errors import ResolutionExistsError
+from payables.domain.proposals.proposals import ProposalStatus
 
 FINDING_KEY = "exception_bill_rule_fingerprint_key"
 RESOLUTION_KEY = "resolution_pkey"
 LIST_LIMIT = 500
 
-# An ignore records the user and a reason. A system resolve records the system and no reason (I8).
+USER_ACTOR = Q(actor__regex=r"\S") & ~Q(actor=SYSTEM_ACTOR)
+
+# An ignore records the user and a reason. A system resolve records the system and no reason.
+# A proposal resolution records the approver and its proposal (I8).
 KIND_FIELDS = (
-    Q(kind=ResolutionKind.IGNORE.value, reason__isnull=False, reason__regex=r"\S")
-    & Q(actor__regex=r"\S")
-    & ~Q(actor=SYSTEM_ACTOR)
-) | Q(kind=ResolutionKind.SYSTEM.value, actor=SYSTEM_ACTOR, reason=None)
+    (
+        Q(kind=ResolutionKind.IGNORE.value, reason__isnull=False, reason__regex=r"\S")
+        & USER_ACTOR
+        & Q(proposal=None)
+    )
+    | Q(kind=ResolutionKind.SYSTEM.value, actor=SYSTEM_ACTOR, reason=None, proposal=None)
+    | (Q(kind=ResolutionKind.PROPOSAL.value, reason=None, proposal__isnull=False) & USER_ACTOR)
+)
 
 FIELDS = (
     "id",
@@ -46,6 +56,7 @@ FIELDS = (
     "resolution__kind",
     "resolution__actor",
     "resolution__reason",
+    "resolution__proposal__status",
 )
 
 
@@ -89,6 +100,14 @@ class ResolutionRow(models.Model):
     kind = models.CharField(max_length=16)
     actor = models.TextField()
     reason = models.TextField(null=True)
+    # The migration adds the key on (tenant_id, proposal_id) (I1, I8).
+    proposal = models.ForeignKey(
+        "payables.ProposalRow",
+        on_delete=models.PROTECT,
+        db_constraint=False,
+        null=True,
+        related_name="+",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -163,8 +182,27 @@ class ResolutionOrmRepository:
                     reason=reason.text,
                 )
         except IntegrityError as error:
-            if violated_constraint(error) == RESOLUTION_KEY:
-                raise ConflictError("the exception already has a resolution") from error
+            _raise_if_resolved(error)
+            raise
+
+    def resolve_by_proposal(self, exception_ids: list[UUID], proposal_id: UUID, actor: str) -> None:
+        # One insert in id order, so two approves on the same exceptions never deadlock.
+        try:
+            with transaction.atomic():
+                ResolutionRow.objects.bulk_create(
+                    [
+                        ResolutionRow(
+                            exception_id=exception_id,
+                            tenant_id=self._tenant_id,
+                            kind=ResolutionKind.PROPOSAL.value,
+                            actor=actor,
+                            proposal_id=proposal_id,
+                        )
+                        for exception_id in sorted(exception_ids)
+                    ]
+                )
+        except IntegrityError as error:
+            _raise_if_resolved(error)
             raise
 
     def resolve_by_system(self, exception_ids: list[UUID]) -> None:
@@ -219,10 +257,22 @@ def _kind(value: str | None) -> ResolutionKind | None:
     return None if value is None else ResolutionKind(value)
 
 
+def _raise_if_resolved(error: IntegrityError) -> None:
+    if violated_constraint(error) == RESOLUTION_KEY:
+        raise ResolutionExistsError("the exception already has a resolution") from error
+
+
 def _with_status(status: ExceptionStatus) -> Q:
     if status is ExceptionStatus.OPEN:
         return Q(resolution__isnull=True)
-    return Q(resolution__kind__in=[kind.value for kind in kinds_with(status)])
+    matches = Q(resolution__kind__in=[kind.value for kind in kinds_with(status)])
+    by_proposal = Q(resolution__kind=ResolutionKind.PROPOSAL.value)
+    synced = Q(resolution__proposal__status=ProposalStatus.SYNCED.value)
+    if status is PROPOSAL_SYNCED_STATUS:
+        matches |= by_proposal & synced
+    if status is PROPOSAL_UNSYNCED_STATUS:
+        matches |= by_proposal & ~synced
+    return matches
 
 
 def _severity_rank() -> Case:
@@ -246,7 +296,10 @@ def _item(row: dict) -> InboxItem:
         invoice_number=row["bill__invoice_number"],
         rule=rule,
         severity=severity_of(rule),
-        status=status_of(None if kind is None else ResolutionKind(kind)),
+        status=status_of(
+            None if kind is None else ResolutionKind(kind),
+            row["resolution__proposal__status"] == ProposalStatus.SYNCED.value,
+        ),
         related_bill_id=row["related_bill_id"],
         created_at=row["created_at"],
         resolved_by=row["resolution__actor"],

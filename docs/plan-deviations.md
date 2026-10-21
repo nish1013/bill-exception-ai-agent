@@ -289,3 +289,57 @@ Plan:     The Tests section says that `proposal.spec.ts` proves "The 51st reques
 Built:    `web/e2e/proposal.spec.ts` creates its tenant with `create_tenants`, and `fillQuotaSlots` inserts 49 `proposal` rows for the UTC day with `psql` in the `postgres` container.
 Why:      The rate limit allows 5 requests a minute, so 51 requests in the browser take 10 minutes. A fixed tenant keeps its slots for the day, so a second run on the same stack starts at slot 51.
 Undo:     Make 50 requests in the spec with a wait of 12 s between them, and remove the tenant id from the run.
+
+## D33. A stale approve marks the proposal in the same request, after a savepoint rollback (PR 9, 2026-10-21)
+
+In short: When an exception already has a resolution, the approve rolls back to a savepoint. The proposal then becomes `stale` and the 409 keeps that write.
+
+Plan:     The Architecture section says that the approve rolls back and marks the proposal `stale` in a new transaction.
+Built:    `approve_fix_proposal` writes the approval and the resolution rows inside a savepoint. On the key conflict it rolls back to the savepoint, sets `stale`, writes a `proposal_stale` audit record and raises `StaleProposalError`. The GraphQL view commits a request whose only errors have `keeps_writes`.
+Why:      Each GraphQL request runs in one tenant transaction, and the view rolls back a request with an error. A new transaction needs a second connection inside the request. The row lock on the proposal stays held across the savepoint rollback, so no other write changes the proposal between the rollback and the stale mark.
+Undo:     Remove `keeps_writes` from `payables/domain/errors.py` and its check in `payables/entrypoints/graphql/view.py`. Run the stale mark from the view in a second tenant transaction after the rollback.
+
+## D34. The proposal stores the reject reason, and CHECKs keep the approval fields consistent (PR 9, 2026-10-21)
+
+In short: `proposal` has `reject_reason`. Two more `CHECK` constraints tie `approved_by`, `approved_at` and `reject_reason` to the status.
+
+Plan:     The domain model gives `approved_by`, `approved_at` and `check approved_by <> requested_by` on `proposal`. US13 says that the audit stores the reason.
+Built:    Migration `0007_approve` adds `reject_reason`. `proposal_approval_fields` requires an approver and a time for `approved`, `syncing`, `synced` and `sync_failed`, and none for other statuses. `proposal_reject_reason` requires a reason for `rejected` only.
+Why:      The app role can only insert into `audit` (I15), so the console cannot read the reason from there. The audit still stores the approver and the reason. The two `CHECK` constraints refuse a second approval path that skips the conditional update.
+Undo:     Drop the column and the two constraints with a new migration. Remove `rejectReason` from the GraphQL `Proposal` type.
+
+## D35. The `apply` queue and its DLQ exist from PR 9 (PR 9, 2026-10-21)
+
+In short: The relay publishes `ApplyFixProposal` to a durable `apply` queue. No worker reads it until PR 10.
+
+Plan:     PR 9 lists "`ApplyFixProposal` in the outbox". PR 10 adds the apply worker.
+Built:    `payables/adapters/broker.py` routes `ApplyFixProposal` to task `payables.apply_fix_proposal` on queue `apply`, with `apply.dlq`. The relay declares both queues when it starts.
+Why:      The relay looks up a route for each outbox row. A row with no route fails its batch, and the relay then publishes no other message. A durable queue keeps each apply message until the worker exists.
+Undo:     Remove the route and the two queues. Keep `ApplyFixProposal` rows unsent until PR 10.
+
+## D36. "Requested by A1" means the same token subject with the clerk role (PR 9, 2026-10-21)
+
+In short: Four-eyes compares the token `sub` of the requester and the approver. A person with both roles signs in once for each role.
+
+Plan:     US12 row 2 gives "P1 is `pending`, requested by A1". US10 says that only a clerk requests a proposal, and a token has one role.
+Built:    The tests and `approve.spec.ts` request P1 as subject `a1` with role `clerk`, then approve as subject `a1` with role `approver`. The API returns 403, and the database `CHECK` refuses the same write.
+Why:      An approver token cannot request a proposal, so the row can only happen when one person holds both roles. The subject is the stable id of the person in the OIDC provider.
+Undo:     Compare another claim, for example an employee id, in `require_second_person` in `payables/domain/proposals/proposals.py`.
+
+## D37. The I9 test without the status condition is approve against reject, and approve of a drafting proposal (PR 9, 2026-10-21)
+
+In short: Two concurrent approves of P1 stay safe without the status condition, because the resolution key also refuses the second approve.
+
+Plan:     The Tests section gives the I9 test "A1 and A2 approve P1", with the `WHERE status = 'pending'` condition as the guard removed.
+Built:    `test_i9_a1_and_a2_approve_p1_one_wins_one_apply_job` passes without the condition. `test_i9_reject_and_approve_p1_reject_wins` and `test_i9_drafting_p1_approve_409_no_resolution` fail without it.
+Why:      The second approve inserts the same resolution rows, and the I7 key refuses them. A rejected or drafting proposal has open exceptions, so only the status condition stops its approve.
+Undo:     None needed. The concurrent approve test stays, because it proves one apply job (D8).
+
+## D38. A constant statement count gates "under 500 ms with 500 bills". `make bench` measures the time (PR 9, 2026-10-21)
+
+In short: The gating suite has no wall-clock assert. It proves that `startBillCheck` sends no statement for each bill.
+
+Plan:     PR 4 gives "`startBillCheck` returns in under 500 ms with 500 bills" as an acceptance criterion.
+Built:    `test_us5_500_bills_same_statement_count_as_5` counts the SQL statements of a request with 5 bills and with 500 bills. Both counts are 7. `make bench` runs `benchmarks/start_bill_check.py`, outside the test folder. It makes one warm-up call and 5 timed calls with 500 bills, and prints the median against 500 ms.
+Why:      One wall-clock sample on a shared CI runner failed at 545 ms and 780 ms, and passed on the next run of the same commit. A query for each bill adds 500 statements, and the count test fails on it. The time of a constant number of statements does not grow with the number of bills.
+Undo:     Add the `timing` marker again and run a timed test alone after the parallel run in `scripts/test-all.sh`.

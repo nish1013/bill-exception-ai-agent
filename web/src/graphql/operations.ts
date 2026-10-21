@@ -144,6 +144,9 @@ export const PROPOSAL = graphql(`
       requestedBy
       quotaSlot
       failedReason
+      approvedBy
+      approvedAt
+      rejectReason
       createdAt
       exceptions {
         id
@@ -157,6 +160,31 @@ export const PROPOSAL = graphql(`
         invoiceNumber
         poNumber
       }
+    }
+  }
+`);
+
+// Each decision returns the fields that the proposal page shows, so the cache updates the page.
+export const APPROVE_FIX_PROPOSAL = graphql(`
+  mutation ApproveFixProposal($proposalId: UUID!) {
+    approveFixProposal(proposalId: $proposalId) {
+      id
+      status
+      approvedBy
+      approvedAt
+      rejectReason
+    }
+  }
+`);
+
+export const REJECT_FIX_PROPOSAL = graphql(`
+  mutation RejectFixProposal($proposalId: UUID!, $reason: String!) {
+    rejectFixProposal(proposalId: $proposalId, reason: $reason) {
+      id
+      status
+      approvedBy
+      approvedAt
+      rejectReason
     }
   }
 `);

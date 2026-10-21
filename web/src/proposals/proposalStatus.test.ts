@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { failedReasonText, isDrafting, proposalStatusColor } from "./proposalStatus";
+import { canDecide, failedReasonText, isDrafting, proposalStatusColor } from "./proposalStatus";
 
 describe("proposal status", () => {
   it.each([
@@ -8,6 +8,8 @@ describe("proposal status", () => {
     ["pending", "warning"],
     ["failed", "error"],
     ["stale", "default"],
+    ["approved", "success"],
+    ["rejected", "default"],
   ])("us11: %s shows as %s", (status, color) => {
     expect(proposalStatusColor(status)).toBe(color);
   });
@@ -22,5 +24,15 @@ describe("proposal status", () => {
 
   it("us11: only drafting waits for the agent", () => {
     expect([isDrafting("drafting"), isDrafting("pending")]).toEqual([true, false]);
+  });
+
+  it.each([
+    ["pending", true],
+    ["drafting", false],
+    ["approved", false],
+    ["rejected", false],
+    ["stale", false],
+  ])("us12 us13: %s takes a decision: %s", (status, decides) => {
+    expect(canDecide(status)).toBe(decides);
   });
 });

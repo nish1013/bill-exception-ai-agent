@@ -12,6 +12,7 @@ from payables.adapters.identity import (
 )
 from payables.adapters.orm.tenants import tenant_transaction
 from payables.domain.access import Principal
+from payables.domain.errors import PayablesError
 from payables.entrypoints.graphql.errors import (
     UNAUTHENTICATED,
     format_error,
@@ -40,7 +41,7 @@ class TenantGraphQLView(GraphQLView):
 
     def execute_graphql_request(self, request, *args, **kwargs):
         result = super().execute_graphql_request(request, *args, **kwargs)
-        if result is not None and result.errors:
+        if result is not None and result.errors and not _all_keep_writes(result.errors):
             # A request with an error writes nothing: a 422 leaves no new supplier (D26).
             transaction.set_rollback(True)
         self._transport_status = transport_status(result.errors if result else None)
@@ -57,6 +58,13 @@ def authenticate(request: HttpRequest, verifier: JwtVerifier) -> Principal:
     if scheme.lower() != BEARER or not token:
         raise InvalidTokenError("no bearer token")
     return principal_from_claims(verifier.verify(token))
+
+
+def _all_keep_writes(errors) -> bool:
+    return all(
+        isinstance(error.original_error, PayablesError) and error.original_error.keeps_writes
+        for error in errors
+    )
 
 
 def _unauthenticated() -> JsonResponse:

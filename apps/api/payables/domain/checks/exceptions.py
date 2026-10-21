@@ -12,6 +12,7 @@ MAX_LENGTH = 1000
 class ResolutionKind(StrEnum):
     IGNORE = "ignore"
     SYSTEM = "system"
+    PROPOSAL = "proposal"
 
 
 class ExceptionStatus(StrEnum):
@@ -41,11 +42,14 @@ class Severity(StrEnum):
             raise ValidationError(f"severity {value!r} is not known") from error
 
 
-# Status is derived on read from the resolution (D38). No resolution: open.
+# Status is derived on read from the resolution and its proposal (D38). No resolution: open.
 RESOLUTION_STATUS: dict[ResolutionKind, ExceptionStatus] = {
     ResolutionKind.IGNORE: ExceptionStatus.IGNORED,
     ResolutionKind.SYSTEM: ExceptionStatus.RESOLVED,
 }
+# Money is safe only when accounting has the action. Until then the exception waits (D10).
+PROPOSAL_SYNCED_STATUS = ExceptionStatus.RESOLVED
+PROPOSAL_UNSYNCED_STATUS = ExceptionStatus.PENDING_SYNC
 
 # A duplicate or a PO mismatch pays the wrong money. The others are a tax or paper risk (D27).
 RULE_SEVERITY: dict[Rule, Severity] = {
@@ -91,11 +95,16 @@ class IgnoreReason:
         return cls(text)
 
 
-def status_of(kind: ResolutionKind | None) -> ExceptionStatus:
-    return ExceptionStatus.OPEN if kind is None else RESOLUTION_STATUS[kind]
+def status_of(kind: ResolutionKind | None, proposal_synced: bool = False) -> ExceptionStatus:
+    if kind is None:
+        return ExceptionStatus.OPEN
+    if kind is ResolutionKind.PROPOSAL:
+        return PROPOSAL_SYNCED_STATUS if proposal_synced else PROPOSAL_UNSYNCED_STATUS
+    return RESOLUTION_STATUS[kind]
 
 
 def kinds_with(status: ExceptionStatus) -> list[ResolutionKind]:
+    """The resolution kinds other than a proposal that give this status."""
     return [kind for kind, kind_status in RESOLUTION_STATUS.items() if kind_status is status]
 
 
