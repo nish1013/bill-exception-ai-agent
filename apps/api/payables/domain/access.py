@@ -4,6 +4,8 @@ from uuid import UUID
 
 # The actor of a check job or a resolution that no user started (D6, D44).
 SYSTEM_ACTOR = "system"
+# The actor of each audit record that the agent loop writes (US11).
+AGENT_ACTOR = "agent"
 
 
 class Role(StrEnum):
