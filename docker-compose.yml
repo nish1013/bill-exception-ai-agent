@@ -1,0 +1,82 @@
+x-app-env: &app-env
+  DJANGO_SECRET_KEY: dev-only-not-secret
+  DJANGO_DEBUG: "1"
+  DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,api
+  POSTGRES_HOST: postgres
+  POSTGRES_DB: payables
+  POSTGRES_USER: payables
+  POSTGRES_PASSWORD: payables
+  REDIS_URL: redis://redis:6379/0
+  CELERY_BROKER_URL: amqp://payables:payables@rabbitmq:5672//
+
+x-app: &app
+  build: ./apps/api
+  environment: *app-env
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+    rabbitmq:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: payables
+      POSTGRES_USER: payables
+      POSTGRES_PASSWORD: payables
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U payables -d payables"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: payables
+      RABBITMQ_DEFAULT_PASS: payables
+    ports:
+      - "${RABBITMQ_UI_PORT:-15672}:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+
+  api:
+    <<: *app
+    ports:
+      - "${API_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz', timeout=2)"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  worker-checks:
+    <<: *app
+    command: ["celery", "-A", "config", "worker", "-Q", "checks", "-c", "4", "-n", "checks@%h"]
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping -d checks@$$HOSTNAME"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+
+volumes:
+  postgres-data:
+  rabbitmq-data:
