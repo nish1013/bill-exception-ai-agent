@@ -9,4 +9,4 @@ test-api:
 
 # Prints the median time of startBillCheck with 500 bills. It does not pass or fail on time (D38).
 bench:
-	docker compose exec -T api uv run pytest tests/bench_us5_start_bill_check.py -n 0 -s --reuse-db
+	docker compose exec -T api uv run python -m benchmarks.start_bill_check

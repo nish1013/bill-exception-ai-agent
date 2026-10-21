@@ -340,6 +340,6 @@ Undo:     None needed. The concurrent approve test stays, because it proves one 
 In short: The gating suite has no wall-clock assert. It proves that `startBillCheck` sends no statement for each bill.
 
 Plan:     PR 4 gives "`startBillCheck` returns in under 500 ms with 500 bills" as an acceptance criterion.
-Built:    `test_us5_500_bills_same_statement_count_as_5` counts the SQL statements of a request with 5 bills and with 500 bills. Both counts are 7. `make bench` runs one warm-up call and 5 timed calls with 500 bills, and prints the median against 500 ms.
+Built:    `test_us5_500_bills_same_statement_count_as_5` counts the SQL statements of a request with 5 bills and with 500 bills. Both counts are 7. `make bench` runs `benchmarks/start_bill_check.py`, outside the test folder. It makes one warm-up call and 5 timed calls with 500 bills, and prints the median against 500 ms.
 Why:      One wall-clock sample on a shared CI runner failed at 545 ms and 780 ms, and passed on the next run of the same commit. A query for each bill adds 500 statements, and the count test fails on it. The time of a constant number of statements does not grow with the number of bills.
 Undo:     Add the `timing` marker again and run a timed test alone after the parallel run in `scripts/test-all.sh`.
