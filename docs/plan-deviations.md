@@ -37,3 +37,21 @@ Plan:     The "Validation and responses" table lists 400, 401, 403, 404, 409, 42
 Built:    The error mapper logs the error and returns `extensions.code = INTERNAL` and `extensions.status = 500`. The original message stays out of the response.
 Why:      Graphene returns the text of each exception by default. That text can hold SQL and row values.
 Undo:     Remove the `INTERNAL` branch in `apps/api/payables/entrypoints/graphql/error_mapper.py`. Graphene then returns the original message.
+
+## D5. `addPurchaseOrder` takes the currency as its own argument (PR 3, 2026-10-21)
+
+In short: A PO amount is two arguments: `amount` in minor units and `currency`. The bill input has the same two fields.
+
+Plan:     The API table gives `addPurchaseOrder(poNumber, supplierId, amount)`. The Money value object needs integer minor units and an ISO 4217 code (D14).
+Built:    `addPurchaseOrder(poNumber, supplierId, amount: MinorUnits!, currency: String!)`. `MinorUnits` is a scalar that passes any number to `Money`. `Money` refuses a float with status 400.
+Why:      US3 rows 1 and 4 give a currency for each PO, and `amount` alone carries no currency. With the GraphQL `Int` type, `amount: 1200.50` fails in the document parse and the error has no `extensions.status` (D48).
+Undo:     Replace `amount` and `currency` with one `MoneyInput` object in `apps/api/payables/entrypoints/graphql/mutation.py` and `bill_input.py`.
+
+## D6. Money refuses a negative amount (PR 3, 2026-10-21)
+
+In short: An amount below 0 minor units returns status 400. A `CHECK` on each amount column refuses it in the database too.
+
+Plan:     The value-object table gives `Money` as integer minor units and an ISO 4217 code. It gives no lower limit.
+Built:    `Money` accepts 0 to 2^63 - 1 minor units. The `bill` and `purchase_order` tables have `CHECK (amount_minor >= 0)`, and `bill` has the same check on `vat_amount_minor`.
+Why:      A negative bill is a credit note, and v1 has no credit-note story. A negative amount would lower the money at risk total (D13). The upper limit is the range of the `bigint` column.
+Undo:     Remove the lower limit in `apps/api/payables/domain/money.py` and drop the `*_not_negative` constraints with a new migration.
