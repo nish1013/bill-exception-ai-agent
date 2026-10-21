@@ -23,7 +23,7 @@ run() {
 }
 
 docker compose up -d --build --wait
-run python manage.py migrate --noinput
+run python manage.py migrate --database owner --noinput
 run ruff format --check .
 run ruff check .
 run pytest
