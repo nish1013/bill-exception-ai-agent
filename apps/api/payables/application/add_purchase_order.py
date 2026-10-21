@@ -6,13 +6,10 @@ from payables.application.authorization import require_role
 from payables.application.ports.outbox import Outbox
 from payables.application.ports.purchase_order_repository import PurchaseOrderRepository
 from payables.application.ports.supplier_repository import SupplierRepository
+from payables.domain.access import Principal, Role
 from payables.domain.errors import NotFoundError
 from payables.domain.money import Money
-from payables.domain.po_number import po_number
-from payables.domain.principal import Principal
-from payables.domain.purchase_order import PurchaseOrder
-from payables.domain.purchase_order_added import PurchaseOrderAdded
-from payables.domain.role import Role
+from payables.domain.purchase_orders import PurchaseOrder, PurchaseOrderAdded, po_number
 
 
 @dataclass(frozen=True)

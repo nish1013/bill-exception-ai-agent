@@ -2,11 +2,13 @@ from uuid import uuid4
 
 import pytest
 
-from payables.domain.checks.bill_check_completed import BillCheckCompleted
-from payables.domain.checks.bill_check_progress import BillCheckProgress
-from payables.domain.checks.check_job import CheckJob
-from payables.domain.checks.check_job_status import CheckJobStatus
-from payables.domain.checks.check_result import CheckResult
+from payables.domain.checks.jobs import (
+    BillCheckCompleted,
+    BillCheckProgress,
+    CheckJob,
+    CheckJobStatus,
+    CheckResult,
+)
 
 J1 = uuid4()
 

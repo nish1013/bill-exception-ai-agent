@@ -18,11 +18,11 @@ from payables.application.read.inbox_item import InboxItem
 from payables.application.read.list_exceptions import get_exception
 from payables.application.register_supplier import register_supplier
 from payables.application.start_bill_check import start_bill_check
-from payables.domain.bill_payload import BillPayload
-from payables.domain.checks.check_job import CheckJob
-from payables.domain.principal import Principal
-from payables.domain.purchase_order import PurchaseOrder
-from payables.domain.supplier import Supplier
+from payables.domain.access import Principal
+from payables.domain.bills import BillPayload
+from payables.domain.checks.jobs import CheckJob
+from payables.domain.purchase_orders import PurchaseOrder
+from payables.domain.suppliers import Supplier
 from payables.entrypoints.graphql.bill_input import BillInput
 from payables.entrypoints.graphql.check_job_type import CheckJobType
 from payables.entrypoints.graphql.exception_type import ExceptionType

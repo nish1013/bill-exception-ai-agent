@@ -4,11 +4,14 @@ from uuid import UUID
 
 import pytest
 
-from payables.domain.checks.bill_checks import run_rules
-from payables.domain.checks.checked_bill import CheckedBill
-from payables.domain.checks.duplicate_rules import duplicate, possible_duplicate
-from payables.domain.checks.finding import Finding
-from payables.domain.checks.rule import Rule
+from payables.domain.checks.rules import (
+    CheckedBill,
+    Finding,
+    Rule,
+    duplicate,
+    possible_duplicate,
+    run_rules,
+)
 from payables.domain.money import Money
 
 S1 = UUID(int=1)

@@ -1,9 +1,7 @@
 from typing import Protocol
 from uuid import UUID
 
-from payables.domain.bill_draft import BillDraft
-from payables.domain.idempotency_key import IdempotencyKey
-from payables.domain.stored_bill import StoredBill
+from payables.domain.bills import BillDraft, IdempotencyKey, StoredBill
 
 
 class BillRepository(Protocol):

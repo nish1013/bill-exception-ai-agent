@@ -13,9 +13,9 @@ from payables.application.read.inbox_filter import InboxFilter
 from payables.application.read.inbox_item import InboxItem
 from payables.application.read.list_exceptions import list_exceptions
 from payables.application.read.list_page import ListPage
-from payables.domain.checks.check_job import CheckJob
-from payables.domain.principal import Principal
-from payables.domain.supplier import Supplier
+from payables.domain.access import Principal
+from payables.domain.checks.jobs import CheckJob
+from payables.domain.suppliers import Supplier
 from payables.entrypoints.graphql.bill_list_type import BillListType
 from payables.entrypoints.graphql.check_job_type import CheckJobType
 from payables.entrypoints.graphql.exception_list_type import ExceptionListType

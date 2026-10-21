@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 
-from payables.domain.checks.exception_status import ExceptionStatus
-from payables.domain.checks.severity import Severity
+from payables.domain.checks.exceptions import ExceptionStatus, Severity
 
 
 @dataclass(frozen=True)

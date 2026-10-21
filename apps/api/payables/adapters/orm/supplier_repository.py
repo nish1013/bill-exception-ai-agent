@@ -4,8 +4,7 @@ from django.db import IntegrityError, transaction
 
 from payables.adapters.orm.integrity import violated_constraint
 from payables.adapters.orm.supplier import NAME_KEY, VAT_KEY, SupplierRow
-from payables.domain.supplier import Supplier
-from payables.domain.supplier_identity import SupplierIdentity
+from payables.domain.suppliers import Supplier, SupplierIdentity
 
 
 class SupplierOrmRepository:

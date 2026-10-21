@@ -1,8 +1,8 @@
 from collections.abc import Sequence
 from typing import Protocol
 
-from payables.domain.checks.check_bill_command import CheckBill
-from payables.domain.purchase_order_added import PurchaseOrderAdded
+from payables.domain.checks.jobs import CheckBill
+from payables.domain.purchase_orders import PurchaseOrderAdded
 
 type Message = CheckBill | PurchaseOrderAdded
 

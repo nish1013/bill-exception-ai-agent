@@ -3,13 +3,9 @@ from dataclasses import dataclass
 from payables.application.authorization import require_role
 from payables.application.ports.bill_repository import BillRepository
 from payables.application.ports.supplier_repository import SupplierRepository
-from payables.domain.bill_draft import BillDraft
-from payables.domain.bill_payload import BillPayload
+from payables.domain.access import Principal, Role
+from payables.domain.bills import BillDraft, BillPayload, IdempotencyKey, StoredBill
 from payables.domain.errors import IdempotencyMismatchError
-from payables.domain.idempotency_key import IdempotencyKey
-from payables.domain.principal import Principal
-from payables.domain.role import Role
-from payables.domain.stored_bill import StoredBill
 
 
 @dataclass(frozen=True)

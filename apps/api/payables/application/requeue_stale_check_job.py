@@ -2,8 +2,7 @@ from uuid import UUID
 
 from payables.application.ports.check_job_repository import CheckJobRepository
 from payables.application.ports.outbox import Outbox
-from payables.domain.checks.check_bill_command import CheckBill
-from payables.domain.checks.check_job import QUEUED_STALE_AFTER
+from payables.domain.checks.jobs import QUEUED_STALE_AFTER, CheckBill
 
 
 def requeue_stale_check_job(

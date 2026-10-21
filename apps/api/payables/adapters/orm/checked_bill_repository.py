@@ -4,8 +4,7 @@ from uuid import UUID
 from django.db.models import Q
 
 from payables.adapters.orm.bill import BillRow
-from payables.domain.checks.checked_bill import CheckedBill
-from payables.domain.checks.duplicate_rules import POSSIBLE_DUPLICATE_WINDOW_DAYS
+from payables.domain.checks.rules import POSSIBLE_DUPLICATE_WINDOW_DAYS, CheckedBill
 from payables.domain.errors import NotFoundError
 from payables.domain.money import Money
 

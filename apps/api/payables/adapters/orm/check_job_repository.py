@@ -6,9 +6,7 @@ from django.db.models.functions import Now
 
 from payables.adapters.orm.check_job import CheckJobRow
 from payables.adapters.orm.check_job_bill import CheckJobBillRow
-from payables.domain.checks.check_job import CheckJob
-from payables.domain.checks.check_job_status import CheckJobStatus
-from payables.domain.checks.check_result import CheckResult
+from payables.domain.checks.jobs import CheckJob, CheckJobStatus, CheckResult
 
 
 class CheckJobOrmRepository:

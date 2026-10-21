@@ -1,11 +1,10 @@
 from payables.application.ports.check_job_repository import CheckJobRepository
 from payables.application.ports.exception_repository import ExceptionRepository
 from payables.application.ports.outbox import Outbox
-from payables.domain.checks.check_bill_command import CheckBill
-from payables.domain.checks.recheck_job import recheck_jobs
-from payables.domain.checks.rule import Rule
-from payables.domain.purchase_order_added import PurchaseOrderAdded
-from payables.domain.system_actor import SYSTEM_ACTOR
+from payables.domain.access import SYSTEM_ACTOR
+from payables.domain.checks.jobs import CheckBill, recheck_jobs
+from payables.domain.checks.rules import Rule
+from payables.domain.purchase_orders import PurchaseOrderAdded
 
 
 def recheck_po_mismatches(

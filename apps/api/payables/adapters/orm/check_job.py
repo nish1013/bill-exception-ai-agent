@@ -4,7 +4,7 @@ from django.db import models
 from django.db.models import Q
 
 from payables.adapters.orm.tenant import Tenant
-from payables.domain.checks.check_job_status import CheckJobStatus
+from payables.domain.checks.jobs import CheckJobStatus
 
 
 class CheckJobRow(models.Model):

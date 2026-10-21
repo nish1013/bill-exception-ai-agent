@@ -2,7 +2,7 @@ from uuid import UUID
 
 from payables.adapters.orm.supplier import SupplierRow
 from payables.application.read.list_page import ListPage
-from payables.domain.supplier import Supplier
+from payables.domain.suppliers import Supplier
 
 LIST_LIMIT = 500
 

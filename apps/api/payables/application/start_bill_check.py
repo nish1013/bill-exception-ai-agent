@@ -5,11 +5,9 @@ from payables.application.authorization import require_role
 from payables.application.ports.check_job_repository import CheckJobRepository
 from payables.application.ports.checked_bill_repository import CheckedBillRepository
 from payables.application.ports.outbox import Outbox
-from payables.domain.checks.check_bill_command import CheckBill
-from payables.domain.checks.check_job import CheckJob
+from payables.domain.access import Principal, Role
+from payables.domain.checks.jobs import CheckBill, CheckJob
 from payables.domain.errors import NotFoundError
-from payables.domain.principal import Principal
-from payables.domain.role import Role
 
 
 def start_bill_check(

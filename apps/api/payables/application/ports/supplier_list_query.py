@@ -1,7 +1,7 @@
 from typing import Protocol
 
 from payables.application.read.list_page import ListPage
-from payables.domain.supplier import Supplier
+from payables.domain.suppliers import Supplier
 
 
 class SupplierListQuery(Protocol):

@@ -1,7 +1,7 @@
 from typing import Protocol
 from uuid import UUID
 
-from payables.domain.checks.checked_bill import CheckedBill
+from payables.domain.checks.rules import CheckedBill
 
 
 class CheckedBillRepository(Protocol):

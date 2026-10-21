@@ -4,10 +4,10 @@ from django.db import IntegrityError, transaction
 
 from payables.adapters.orm.integrity import violated_constraint
 from payables.adapters.orm.purchase_order import PO_NUMBER_KEY, PurchaseOrderRow
-from payables.domain.document_number import DocumentNumber
 from payables.domain.errors import ConflictError
 from payables.domain.money import Money
-from payables.domain.purchase_order import PurchaseOrder
+from payables.domain.purchase_orders import PurchaseOrder
+from payables.domain.text import DocumentNumber
 
 
 class PurchaseOrderOrmRepository:

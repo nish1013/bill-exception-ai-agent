@@ -1,7 +1,7 @@
 from typing import Protocol
 from uuid import UUID
 
-from payables.domain.ignore_reason import IgnoreReason
+from payables.domain.checks.exceptions import IgnoreReason
 
 
 class ResolutionRepository(Protocol):

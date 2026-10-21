@@ -3,8 +3,7 @@ from typing import Any
 from uuid import UUID
 
 from payables.adapters.identity.invalid_token_error import InvalidTokenError
-from payables.domain.principal import Principal
-from payables.domain.role import Role
+from payables.domain.access import Principal, Role
 
 TENANT_CLAIM = "tenant_id"
 ROLE_CLAIM = "role"

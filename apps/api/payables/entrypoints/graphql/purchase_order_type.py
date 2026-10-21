@@ -1,6 +1,6 @@
 import graphene
 
-from payables.domain.purchase_order import PurchaseOrder
+from payables.domain.purchase_orders import PurchaseOrder
 from payables.entrypoints.graphql.minor_units import MinorUnits
 
 

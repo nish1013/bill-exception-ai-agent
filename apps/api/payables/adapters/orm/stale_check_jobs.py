@@ -6,7 +6,7 @@ from django.db.models.functions import Now
 
 from payables.adapters.orm.check_job import CheckJobRow
 from payables.adapters.orm.row_level_security import RELAY_ALIAS
-from payables.domain.checks.check_job_status import CheckJobStatus
+from payables.domain.checks.jobs import CheckJobStatus
 
 
 def stale_check_jobs(stale_after: timedelta) -> list[tuple[UUID, UUID]]:

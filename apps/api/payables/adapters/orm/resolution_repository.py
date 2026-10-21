@@ -4,10 +4,9 @@ from django.db import IntegrityError, transaction
 
 from payables.adapters.orm.integrity import violated_constraint
 from payables.adapters.orm.resolution import RESOLUTION_KEY, ResolutionRow
-from payables.domain.checks.resolution_kind import ResolutionKind
+from payables.domain.access import SYSTEM_ACTOR
+from payables.domain.checks.exceptions import IgnoreReason, ResolutionKind
 from payables.domain.errors import ConflictError
-from payables.domain.ignore_reason import IgnoreReason
-from payables.domain.system_actor import SYSTEM_ACTOR
 
 
 class ResolutionOrmRepository:

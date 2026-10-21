@@ -1,6 +1,6 @@
 import graphene
 
-from payables.domain.checks.check_job import CheckJob
+from payables.domain.checks.jobs import CheckJob
 
 
 class CheckJobType(graphene.ObjectType):

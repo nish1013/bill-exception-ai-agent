@@ -4,9 +4,7 @@ from django.db import IntegrityError, transaction
 
 from payables.adapters.orm.bill import IDEMPOTENCY_KEY, BillRow
 from payables.adapters.orm.integrity import violated_constraint
-from payables.domain.bill_draft import BillDraft
-from payables.domain.idempotency_key import IdempotencyKey
-from payables.domain.stored_bill import StoredBill
+from payables.domain.bills import BillDraft, IdempotencyKey, StoredBill
 
 STORED_FIELDS = ("id", "supplier_id", "payload_hash")
 

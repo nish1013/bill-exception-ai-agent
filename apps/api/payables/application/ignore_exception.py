@@ -3,10 +3,9 @@ from uuid import UUID
 from payables.application.authorization import require_role
 from payables.application.ports.exception_repository import ExceptionRepository
 from payables.application.ports.resolution_repository import ResolutionRepository
+from payables.domain.access import Principal, Role
+from payables.domain.checks.exceptions import IgnoreReason
 from payables.domain.errors import NotFoundError
-from payables.domain.ignore_reason import IgnoreReason
-from payables.domain.principal import Principal
-from payables.domain.role import Role
 
 
 def ignore_exception(

@@ -1,9 +1,7 @@
 from payables.application.authorization import require_role
 from payables.application.ports.supplier_repository import SupplierRepository
-from payables.domain.principal import Principal
-from payables.domain.role import Role
-from payables.domain.supplier import Supplier
-from payables.domain.supplier_identity import SupplierIdentity
+from payables.domain.access import Principal, Role
+from payables.domain.suppliers import Supplier, SupplierIdentity
 
 
 def register_supplier(

@@ -3,13 +3,10 @@ from payables.application.ports.checked_bill_repository import CheckedBillReposi
 from payables.application.ports.exception_repository import ExceptionRepository
 from payables.application.ports.purchase_order_repository import PurchaseOrderRepository
 from payables.application.ports.resolution_repository import ResolutionRepository
-from payables.domain.checks.bill_checks import run_rules
-from payables.domain.checks.check_bill_command import CheckBill
-from payables.domain.checks.check_job import CheckJob
-from payables.domain.checks.check_result import CheckResult
-from payables.domain.checks.checked_bill import CheckedBill
-from payables.domain.checks.exception_changes import changes_after_check
-from payables.domain.purchase_order import PurchaseOrder
+from payables.domain.checks.exceptions import changes_after_check
+from payables.domain.checks.jobs import CheckBill, CheckJob, CheckResult
+from payables.domain.checks.rules import CheckedBill, run_rules
+from payables.domain.purchase_orders import PurchaseOrder
 
 
 def check_bill(

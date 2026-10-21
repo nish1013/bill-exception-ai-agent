@@ -4,7 +4,7 @@ from django.db.models import Q
 from payables.adapters.orm.bill import BillRow
 from payables.adapters.orm.check_job import CheckJobRow
 from payables.adapters.orm.tenant import Tenant
-from payables.domain.checks.check_result import CheckResult
+from payables.domain.checks.jobs import CheckResult
 
 JOB_BILL_KEY = "check_job_bill_job_bill_key"
 

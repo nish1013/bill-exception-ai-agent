@@ -1,9 +1,9 @@
 from typing import Protocol
 from uuid import UUID
 
-from payables.domain.document_number import DocumentNumber
 from payables.domain.money import Money
-from payables.domain.purchase_order import PurchaseOrder
+from payables.domain.purchase_orders import PurchaseOrder
+from payables.domain.text import DocumentNumber
 
 
 class PurchaseOrderRepository(Protocol):

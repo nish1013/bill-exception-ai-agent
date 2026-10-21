@@ -2,9 +2,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
-from payables.domain.checks.exception_status import ExceptionStatus
-from payables.domain.checks.rule import Rule
-from payables.domain.checks.severity import Severity
+from payables.domain.checks.exceptions import ExceptionStatus, Severity
+from payables.domain.checks.rules import Rule
 
 
 @dataclass(frozen=True)

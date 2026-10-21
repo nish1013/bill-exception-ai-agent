@@ -8,9 +8,8 @@ from payables.adapters.orm.tenancy import tenant_transaction
 from payables.application.add_purchase_order import AddPurchaseOrderCommand, add_purchase_order
 from payables.application.ingest_bill import IngestBillCommand, ingest_bill
 from payables.application.register_supplier import register_supplier
+from payables.domain.access import Principal, Role
 from payables.domain.errors import ConflictError
-from payables.domain.principal import Principal
-from payables.domain.role import Role
 from tests.concurrency import owner_count, race
 from tests.ingest_data import B1_PAYLOAD
 from tests.tenants import T1

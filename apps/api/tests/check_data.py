@@ -16,14 +16,11 @@ from payables.application.add_purchase_order import AddPurchaseOrderCommand, add
 from payables.application.check_bill import check_bill, record_check_result
 from payables.application.ingest_bill import IngestBillCommand, ingest_bill
 from payables.application.start_bill_check import start_bill_check
-from payables.domain.checks.check_bill_command import CheckBill
-from payables.domain.checks.check_job import CheckJob
-from payables.domain.checks.check_result import CheckResult
+from payables.domain.access import Principal, Role
+from payables.domain.checks.jobs import CheckBill, CheckJob, CheckResult
 from payables.domain.money import Money
-from payables.domain.po_number import po_number
-from payables.domain.principal import Principal
-from payables.domain.role import Role
-from payables.domain.supplier_identity import SupplierIdentity
+from payables.domain.purchase_orders import po_number
+from payables.domain.suppliers import SupplierIdentity
 from tests.concurrency import owner_count
 from tests.ingest_data import B1_PAYLOAD
 from tests.tenants import T1, T2

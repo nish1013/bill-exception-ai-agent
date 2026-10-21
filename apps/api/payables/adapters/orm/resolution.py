@@ -3,8 +3,8 @@ from django.db.models import Q
 
 from payables.adapters.orm.exception import ExceptionRow
 from payables.adapters.orm.tenant import Tenant
-from payables.domain.checks.resolution_kind import ResolutionKind
-from payables.domain.system_actor import SYSTEM_ACTOR
+from payables.domain.access import SYSTEM_ACTOR
+from payables.domain.checks.exceptions import ResolutionKind
 
 RESOLUTION_KEY = "resolution_pkey"
 

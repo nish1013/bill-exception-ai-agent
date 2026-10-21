@@ -2,9 +2,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from payables.domain.checks.check_job import MAX_BILLS, CheckJob
-from payables.domain.checks.check_job_status import CheckJobStatus
-from payables.domain.checks.check_result import CheckResult
+from payables.domain.checks.jobs import MAX_BILLS, CheckJob, CheckJobStatus, CheckResult
 from payables.domain.errors import ValidationError
 
 OK = CheckResult.OK

@@ -2,8 +2,7 @@ from datetime import timedelta
 from typing import Protocol
 from uuid import UUID
 
-from payables.domain.checks.check_job import CheckJob
-from payables.domain.checks.check_result import CheckResult
+from payables.domain.checks.jobs import CheckJob, CheckResult
 
 
 class CheckJobRepository(Protocol):

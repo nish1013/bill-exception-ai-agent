@@ -2,15 +2,11 @@ from dataclasses import replace
 
 import pytest
 
-from payables.domain.bill_draft import BillDraft
+from payables.domain.bills import BillDraft, IdempotencyKey, invoice_number
 from payables.domain.errors import ValidationError
-from payables.domain.idempotency_key import IdempotencyKey
-from payables.domain.invoice_number import invoice_number
 from payables.domain.money import MAX_MINOR_UNITS, Money
-from payables.domain.po_number import optional_po_number, po_number
-from payables.domain.supplier_identity import SupplierIdentity
-from payables.domain.supplier_name import SupplierName
-from payables.domain.vat_number import VatNumber
+from payables.domain.purchase_orders import optional_po_number, po_number
+from payables.domain.suppliers import SupplierIdentity, SupplierName, VatNumber
 from tests.ingest_data import B1_PAYLOAD
 
 

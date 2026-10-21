@@ -4,14 +4,17 @@ from uuid import UUID
 
 import pytest
 
-from payables.domain.checks.bill_checks import run_rules
-from payables.domain.checks.bill_rules import missing_receipt, missing_vat
-from payables.domain.checks.checked_bill import CheckedBill
-from payables.domain.checks.finding import Finding
-from payables.domain.checks.po_rules import po_mismatch
-from payables.domain.checks.rule import Rule
+from payables.domain.checks.rules import (
+    CheckedBill,
+    Finding,
+    Rule,
+    missing_receipt,
+    missing_vat,
+    po_mismatch,
+    run_rules,
+)
 from payables.domain.money import Money
-from payables.domain.purchase_order import PurchaseOrder
+from payables.domain.purchase_orders import PurchaseOrder
 
 S1 = UUID(int=1)
 S2 = UUID(int=2)

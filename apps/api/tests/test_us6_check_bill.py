@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from payables.domain.supplier_identity import SupplierIdentity
+from payables.domain.suppliers import SupplierIdentity
 from tests.check_data import (
     add_bill,
     add_po,

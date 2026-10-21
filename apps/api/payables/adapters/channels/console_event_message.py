@@ -1,8 +1,7 @@
 from typing import Any
 
 from payables.application.ports.console_events import ConsoleEvent
-from payables.domain.checks.bill_check_completed import BillCheckCompleted
-from payables.domain.checks.bill_check_progress import BillCheckProgress
+from payables.domain.checks.jobs import BillCheckCompleted, BillCheckProgress
 
 
 def console_event_message(event: ConsoleEvent) -> dict[str, Any]:

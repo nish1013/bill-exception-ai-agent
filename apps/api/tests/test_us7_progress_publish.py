@@ -7,7 +7,7 @@ from channels_redis.core import RedisChannelLayer
 
 from payables.adapters.channels.channels_console_events import ChannelsConsoleEvents
 from payables.application.ports.console_events import ConsoleEvent
-from payables.domain.checks.bill_check_progress import BillCheckProgress
+from payables.domain.checks.jobs import BillCheckProgress
 from payables.entrypoints.tasks import check_bill as check_bill_entrypoint
 from payables.entrypoints.tasks.check_bill import check_bill_task
 from tests.check_data import add_bill, check, start_job

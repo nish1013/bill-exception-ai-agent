@@ -5,7 +5,7 @@ from django.db.models import Q
 
 from payables.adapters.orm.bill import BillRow
 from payables.adapters.orm.tenant import Tenant
-from payables.domain.checks.rule import Rule
+from payables.domain.checks.rules import Rule
 
 FINDING_KEY = "exception_bill_rule_fingerprint_key"
 

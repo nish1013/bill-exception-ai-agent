@@ -1,17 +1,50 @@
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import timedelta
-from uuid import UUID
+from enum import StrEnum
+from uuid import UUID, uuid5
 
-from payables.domain.checks.bill_check_completed import BillCheckCompleted
-from payables.domain.checks.bill_check_progress import BillCheckProgress
-from payables.domain.checks.check_job_status import CheckJobStatus
-from payables.domain.checks.check_result import CheckResult
 from payables.domain.errors import ValidationError
+
+
+class CheckJobStatus(StrEnum):
+    QUEUED = "queued"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class CheckResult(StrEnum):
+    PENDING = "pending"
+    OK = "ok"
+    FAILED = "failed"
+
 
 MAX_BILLS = 500
 QUEUED_STALE_AFTER = timedelta(minutes=5)
 DONE_STATUSES = frozenset({CheckJobStatus.COMPLETED, CheckJobStatus.FAILED})
+
+
+@dataclass(frozen=True)
+class CheckBill:
+    tenant_id: UUID
+    job_id: UUID
+    bill_id: UUID
+
+
+@dataclass(frozen=True)
+class BillCheckProgress:
+    job_id: UUID
+    seq: int
+    percent: int
+
+
+@dataclass(frozen=True)
+class BillCheckCompleted:
+    job_id: UUID
+    seq: int
+    status: CheckJobStatus
+    failed_count: int
 
 
 @dataclass
@@ -71,3 +104,15 @@ class CheckJob:
             return CheckJobStatus.RUNNING
         # A job with no good bill gave the clerk nothing (D41).
         return CheckJobStatus.FAILED if self.ok_count == 0 else CheckJobStatus.COMPLETED
+
+
+@dataclass(frozen=True)
+class RecheckJob:
+    id: UUID
+    bill_ids: list[UUID]
+
+
+def recheck_jobs(event_id: UUID, bill_ids: list[UUID]) -> list[RecheckJob]:
+    # Job ids come from the event id, so a repeat delivery finds the same jobs (D42).
+    batches = [bill_ids[start : start + MAX_BILLS] for start in range(0, len(bill_ids), MAX_BILLS)]
+    return [RecheckJob(uuid5(event_id, str(n)), batch) for n, batch in enumerate(batches)]

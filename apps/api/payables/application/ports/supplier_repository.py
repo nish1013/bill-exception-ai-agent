@@ -1,8 +1,7 @@
 from typing import Protocol
 from uuid import UUID
 
-from payables.domain.supplier import Supplier
-from payables.domain.supplier_identity import SupplierIdentity
+from payables.domain.suppliers import Supplier, SupplierIdentity
 
 
 class SupplierRepository(Protocol):

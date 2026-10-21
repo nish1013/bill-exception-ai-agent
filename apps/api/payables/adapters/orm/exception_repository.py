@@ -1,10 +1,8 @@
 from uuid import UUID
 
 from payables.adapters.orm.exception import ExceptionRow
-from payables.domain.checks.finding import Finding
-from payables.domain.checks.resolution_kind import ResolutionKind
-from payables.domain.checks.rule import Rule
-from payables.domain.checks.stored_exception import StoredException
+from payables.domain.checks.exceptions import ResolutionKind, StoredException
+from payables.domain.checks.rules import Finding, Rule
 
 
 class ExceptionOrmRepository:
