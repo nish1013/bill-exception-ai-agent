@@ -67,6 +67,8 @@ type Exception {
   status: String!
   relatedBillId: UUID
   createdAt: DateTime!
+  resolvedBy: String
+  reason: String
 }
 
 type CheckJob {
@@ -82,6 +84,7 @@ type Mutation {
   addPurchaseOrder(poNumber: String!, supplierId: UUID!, amount: MinorUnits!, currency: String!): PurchaseOrder!
   ingestBill(idempotencyKey: String!, bill: BillInput!): IngestBillPayload!
   startBillCheck(billIds: [UUID!]!): CheckJob!
+  ignoreException(exceptionId: UUID!, reason: String!): Exception!
 }
 
 type Supplier {

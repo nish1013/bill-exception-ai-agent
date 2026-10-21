@@ -17,6 +17,9 @@ FIELDS = (
     "currency",
     "issue_date",
     "created_at",
+    "vat_amount_minor",
+    "has_receipt",
+    "po_number_norm",
 )
 
 
@@ -58,4 +61,7 @@ def _checked_bill(row: dict) -> CheckedBill:
         amount=Money(row["amount_minor"], row["currency"]),
         issue_date=row["issue_date"],
         ingested_at=row["created_at"],
+        vat_amount_minor=row["vat_amount_minor"],
+        has_receipt=row["has_receipt"],
+        po_number=row["po_number_norm"],
     )

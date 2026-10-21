@@ -1,6 +1,7 @@
 import os
 import signal
 
+import pytest
 from django.db import connections, transaction
 
 from config.celery import app
@@ -17,9 +18,16 @@ from tests.broker import (
     wait_until,
     worker_command,
 )
-from tests.check_data import add_bill, exceptions_on, job_row, start_job
+from tests.check_data import (
+    add_bill,
+    exceptions_on,
+    job_row,
+    start_job,
+)
 from tests.concurrency import owner_count
 from tests.tenants import T1
+
+pytestmark = pytest.mark.usefixtures("po_100")
 
 HOLD_EXCEPTION_KEY = """
 INSERT INTO exception (id, tenant_id, bill_id, rule, fingerprint, related_bill_id, created_at)

@@ -80,3 +80,11 @@ def _login_role(schema_editor, alias: str) -> str:
         password = schema_editor.quote_value(settings.DATABASES[alias]["PASSWORD"])
         schema_editor.execute(f"CREATE ROLE {quoted} LOGIN PASSWORD {password}")
     return quoted
+
+
+def restrictive_policy(table: str, name: str, command: str, using: str) -> migrations.RunSQL:
+    # A restrictive policy narrows the tenant policy for one command. It never widens it.
+    return migrations.RunSQL(
+        f"CREATE POLICY {name} ON {table} AS RESTRICTIVE FOR {command} USING ({using})",
+        f"DROP POLICY {name} ON {table}",
+    )

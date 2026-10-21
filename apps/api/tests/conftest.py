@@ -12,6 +12,7 @@ from django.test import Client
 from config.celery import app
 from payables.adapters.broker.queues import CHECKS, dead_letter_name, declare_queues
 from tests.broker import create_vhost, purge, test_vhost_url
+from tests.check_data import seed_po
 from tests.tenants import NAMES
 
 GraphQL = Callable[..., Any]
@@ -19,6 +20,7 @@ GraphQL = Callable[..., Any]
 # Children first, so each delete passes the foreign keys.
 TABLES = (
     "outbox",
+    "resolution",
     "exception",
     "check_job_bill",
     "check_job",
@@ -98,6 +100,13 @@ def committed_db(django_db_setup, django_db_blocker) -> Iterator[None]:
         with connections["owner"].cursor() as cursor:
             for table in TABLES:
                 cursor.execute(f"DELETE FROM {table}")
+
+
+@pytest.fixture
+def po_100(committed_db) -> None:
+    # The example data has PO-100 for B1, so a bill like B1 raises no po_mismatch. The row is
+    # stored with no PurchaseOrderAdded event, so the outbox holds only the test's own messages.
+    seed_po()
 
 
 @pytest.fixture(scope="session")
