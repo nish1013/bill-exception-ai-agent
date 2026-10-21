@@ -34,5 +34,12 @@ class BillRow(models.Model):
         db_table = "bill"
         constraints = [
             models.UniqueConstraint(fields=["tenant", "idempotency_key"], name=IDEMPOTENCY_KEY),
+            models.UniqueConstraint(fields=["tenant", "id"], name="bill_tenant_id_key"),
             *money_constraints("bill", "amount_minor", "vat_amount_minor"),
+        ]
+        indexes = [
+            models.Index(
+                fields=["supplier", "invoice_number_norm"], name="bill_supplier_number_idx"
+            ),
+            models.Index(fields=["supplier", "amount_minor"], name="bill_supplier_amount_idx"),
         ]

@@ -3,16 +3,22 @@ from uuid import UUID
 import graphene
 
 from payables.adapters.orm.bill_repository import BillOrmRepository
+from payables.adapters.orm.check_job_repository import CheckJobOrmRepository
+from payables.adapters.orm.checked_bill_repository import CheckedBillOrmRepository
+from payables.adapters.orm.outbox_repository import OutboxOrmRepository
 from payables.adapters.orm.purchase_order_repository import PurchaseOrderOrmRepository
 from payables.adapters.orm.supplier_repository import SupplierOrmRepository
 from payables.application.add_purchase_order import AddPurchaseOrderCommand, add_purchase_order
 from payables.application.ingest_bill import IngestBillCommand, ingest_bill
 from payables.application.register_supplier import register_supplier
+from payables.application.start_bill_check import start_bill_check
 from payables.domain.bill_payload import BillPayload
+from payables.domain.checks.check_job import CheckJob
 from payables.domain.principal import Principal
 from payables.domain.purchase_order import PurchaseOrder
 from payables.domain.supplier import Supplier
 from payables.entrypoints.graphql.bill_input import BillInput
+from payables.entrypoints.graphql.check_job_type import CheckJobType
 from payables.entrypoints.graphql.ingest_bill_payload import IngestBillPayload
 from payables.entrypoints.graphql.minor_units import MinorUnits
 from payables.entrypoints.graphql.purchase_order_type import PurchaseOrderType
@@ -39,6 +45,11 @@ class Mutation(graphene.ObjectType):
         required=True,
         idempotency_key=graphene.String(required=True),
         bill=BillInput(required=True),
+    )
+    start_bill_check = graphene.Field(
+        CheckJobType,
+        required=True,
+        bill_ids=graphene.List(graphene.NonNull(graphene.UUID), required=True),
     )
 
     def resolve_register_supplier(root, info, name: str, vat_number: str | None = None) -> Supplier:
@@ -69,6 +80,17 @@ class Mutation(graphene.ObjectType):
             BillOrmRepository(principal.tenant_id),
         )
         return IngestBillPayload(bill_id=stored.id, supplier_id=stored.supplier_id)
+
+    def resolve_start_bill_check(root, info, bill_ids: list[UUID]) -> CheckJob:
+        principal = _principal(info)
+        tenant_id = principal.tenant_id
+        return start_bill_check(
+            principal,
+            bill_ids,
+            CheckedBillOrmRepository(tenant_id),
+            CheckJobOrmRepository(tenant_id),
+            OutboxOrmRepository(tenant_id),
+        )
 
 
 def _principal(info) -> Principal:

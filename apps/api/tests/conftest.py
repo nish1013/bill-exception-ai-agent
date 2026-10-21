@@ -13,7 +13,16 @@ from tests.tenants import NAMES
 
 GraphQL = Callable[..., Any]
 
-INGEST_TABLES = ("bill", "purchase_order", "supplier")
+# Children first, so each delete passes the foreign keys.
+TABLES = (
+    "outbox",
+    "exception",
+    "check_job_bill",
+    "check_job",
+    "bill",
+    "purchase_order",
+    "supplier",
+)
 
 
 @pytest.fixture(scope="session")
@@ -74,5 +83,5 @@ def committed_db(django_db_setup, django_db_blocker) -> Iterator[None]:
     with django_db_blocker.unblock():
         yield
         with connections["owner"].cursor() as cursor:
-            for table in INGEST_TABLES:
+            for table in TABLES:
                 cursor.execute(f"DELETE FROM {table}")
