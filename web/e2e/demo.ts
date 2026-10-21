@@ -139,10 +139,14 @@ export function billRow(page: Page, bill: BillEntry): Locator {
 }
 
 // A click on a grid checkbox re-renders the row. The test asserts the state after the click.
-export async function selectBill(page: Page, bill: BillEntry): Promise<void> {
-  const checkbox = billRow(page, bill).getByRole("checkbox");
+export async function selectRow(row: Locator): Promise<void> {
+  const checkbox = row.getByRole("checkbox");
   await checkbox.click();
   await expect(checkbox).toBeChecked();
+}
+
+export async function selectBill(page: Page, bill: BillEntry): Promise<void> {
+  await selectRow(billRow(page, bill));
 }
 
 export async function startCheckOf(page: Page, bills: BillEntry[]): Promise<void> {

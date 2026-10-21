@@ -5,8 +5,9 @@ from uuid import UUID
 from asgiref.sync import async_to_sync
 from channels.layers import BaseChannelLayer, get_channel_layer
 
-from payables.application.checks import ConsoleEvent
+from payables.application.console_events import ConsoleEvent
 from payables.domain.checks.jobs import BillCheckCompleted, BillCheckProgress
+from payables.domain.proposals.proposals import FixProposalReady
 
 logger = logging.getLogger(__name__)
 
@@ -47,4 +48,10 @@ def console_event_message(event: ConsoleEvent) -> dict[str, Any]:
                 "seq": event.seq,
                 "status": event.status.value,
                 "failedCount": event.failed_count,
+            }
+        case FixProposalReady():
+            return {
+                "type": "FixProposalReady",
+                "proposalId": str(event.proposal_id),
+                "status": event.status.value,
             }

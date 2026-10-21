@@ -1,4 +1,4 @@
-import type { ConsoleEvent } from "../events/consoleEvent";
+import type { CheckJobEvent } from "../events/consoleEvent";
 
 export interface JobRow {
   id: string;
@@ -22,7 +22,7 @@ export function mergeRow<T extends JobRow>(shown: T, read: T): T {
 }
 
 // An event with a seq at or below the last one shown changes nothing (D19).
-export function applyEvent<T extends JobRow>(job: T, event: ConsoleEvent): T {
+export function applyEvent<T extends JobRow>(job: T, event: CheckJobEvent): T {
   if (event.jobId !== job.id || isDone(job)) {
     return job;
   }

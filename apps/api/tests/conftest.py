@@ -10,13 +10,14 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import redis
 from channels.layers import channel_layers
 from django.conf import settings
 from django.db import connections
 from django.test import Client
 
 from config.celery import app
-from payables.adapters.broker import CHECKS, dead_letter_name, declare_queues
+from payables.adapters.broker import ALL_QUEUES, declare_queues
 from tests.broker import create_vhost, purge, test_vhost_url
 from tests.check_data import seed_po
 from tests.tenants import NAMES
@@ -25,6 +26,10 @@ GraphQL = Callable[..., Any]
 
 # Children first, so each delete passes the foreign keys.
 TABLES = (
+    "audit",
+    "proposal_action",
+    "proposal_exception",
+    "proposal",
     "outbox",
     "resolution",
     "exception",
@@ -73,8 +78,27 @@ def channel_layer_prefix() -> str:
     worker = os.environ.get("PYTEST_XDIST_WORKER", "main")
     prefix = f"asgi_test_{worker}"
     settings.CHANNEL_LAYERS["default"]["CONFIG"]["prefix"] = prefix
-    channel_layers.backends.clear()
     return prefix
+
+
+@pytest.fixture(autouse=True)
+def fresh_channel_layer(channel_layer_prefix: str) -> None:
+    # Each test runs its sockets on a new event loop. A channels_redis layer keeps
+    # asyncio locks bound to the loop that first waited on them, so no layer outlives a test.
+    channel_layers.backends.clear()
+
+
+@pytest.fixture
+def fresh_rate_limit() -> Iterator[None]:
+    # Each xdist worker counts proposal requests under its own Redis prefix, from zero each test.
+    worker = os.environ.get("PYTEST_XDIST_WORKER", "main")
+    prefix = f"ratelimit_test_{worker}"
+    original = settings.RATE_LIMIT_PREFIX
+    settings.RATE_LIMIT_PREFIX = prefix
+    client = redis.Redis.from_url(settings.REDIS_URL)
+    client.delete(*client.keys(f"{prefix}:*") or [f"{prefix}:none"])
+    yield
+    settings.RATE_LIMIT_PREFIX = original
 
 
 @pytest.fixture(scope="session")
@@ -159,5 +183,5 @@ def broker_url(django_db_setup) -> str:
 def queues(broker_url) -> str:
     with app.connection_for_write() as connection:
         declare_queues(connection)
-    purge(broker_url, CHECKS, dead_letter_name(CHECKS))
+    purge(broker_url, *[queue.name for queue in ALL_QUEUES])
     return broker_url

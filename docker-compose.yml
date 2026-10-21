@@ -61,7 +61,8 @@ services:
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      # ping answers before the AMQP listener is up. The relay and workers need the listener.
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_port_connectivity"]
       interval: 5s
       timeout: 10s
       retries: 30
@@ -100,6 +101,18 @@ services:
     command: ["celery", "-A", "config", "worker", "-Q", "checks", "-c", "4", "-n", "checks@%h"]
     healthcheck:
       test: ["CMD-SHELL", "celery -A config inspect ping -d checks@$$HOSTNAME"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+
+  worker-propose-ai:
+    <<: *app
+    environment:
+      <<: *app-env
+      LLM_PROVIDER: stub
+    command: ["celery", "-A", "config", "worker", "-Q", "propose-ai", "-c", "2", "-n", "propose-ai@%h"]
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping -d propose-ai@$$HOSTNAME"]
       interval: 10s
       timeout: 10s
       retries: 12

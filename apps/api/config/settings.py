@@ -62,6 +62,10 @@ CELERY_BROKER_TRANSPORT_OPTIONS = {"confirm_publish": True}
 CELERY_TASK_IGNORE_RESULT = True
 CELERY_IMPORTS = ["payables.entrypoints.tasks"]
 
+# The stub model runs in CI and the demo. It makes no network call and needs no key (D54).
+LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "stub")
+RATE_LIMIT_PREFIX = os.environ.get("RATE_LIMIT_PREFIX", "ratelimit")
+
 CHECK_LOCK_TIMEOUT_MS = int(os.environ.get("CHECK_LOCK_TIMEOUT_MS", "5000"))
 
 OIDC_ISSUER = os.environ["OIDC_ISSUER"]

@@ -107,6 +107,60 @@ export const IGNORE_EXCEPTION = graphql(`
   }
 `);
 
+export const REQUEST_FIX_PROPOSAL = graphql(`
+  mutation RequestFixProposal($exceptionIds: [UUID!]!) {
+    requestFixProposal(exceptionIds: $exceptionIds) {
+      id
+      status
+    }
+  }
+`);
+
+export const PROPOSALS = graphql(`
+  query Proposals($status: String) {
+    proposals(status: $status) {
+      totalCount
+      items {
+        id
+        status
+        requestedBy
+        createdAt
+        exceptions {
+          id
+        }
+        actions {
+          kind
+        }
+      }
+    }
+  }
+`);
+
+export const PROPOSAL = graphql(`
+  query Proposal($id: UUID!) {
+    proposal(id: $id) {
+      id
+      status
+      requestedBy
+      quotaSlot
+      failedReason
+      createdAt
+      exceptions {
+        id
+        rule
+        invoiceNumber
+      }
+      actions {
+        kind
+        billId
+        supplierName
+        invoiceNumber
+        poNumber
+      }
+    }
+  }
+`);
+
 export const SUPPLIERS = graphql(`
   query Suppliers {
     suppliers {

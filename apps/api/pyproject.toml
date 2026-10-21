@@ -33,6 +33,9 @@ testpaths = ["tests"]
 # One process per CPU. Each gets its own test database and broker vhost. A chunk of one test
 # keeps the slow broker tests on different workers.
 addopts = "-n auto --maxschedchunk 1"
+markers = [
+    "timing: asserts a wall-clock limit. test-all runs these alone, after the parallel run.",
+]
 
 [tool.ruff]
 line-length = 100

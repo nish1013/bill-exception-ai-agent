@@ -31,7 +31,9 @@ run python manage.py migrate --database owner --noinput
 run python manage.py seed_demo
 run ruff format --check .
 run ruff check .
-run pytest
+run pytest -m "not timing"
+# Other workers load the CPU. Wall-clock limits are measured with no parallel tests.
+run pytest -m timing -n 0
 run lint-imports
 
 # The console generates its types from web/schema.graphql. It must match the API schema.

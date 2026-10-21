@@ -114,6 +114,7 @@ def test_us5_501_bills_400(committed_db, start):
     assert owner_count("check_job") == 0
 
 
+@pytest.mark.timing
 def test_us5_500_bills_under_500_ms(committed_db, graphql, token_for, start):
     add_bill("K1")
     bills = _bulk_bills(500)
