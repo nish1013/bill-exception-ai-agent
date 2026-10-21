@@ -1,6 +1,7 @@
-import { useQuery } from "@apollo/client";
+import { useMutation, useQuery } from "@apollo/client";
 import {
   Alert,
+  Button,
   LinearProgress,
   List,
   ListItem,
@@ -14,13 +15,15 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
+import { useState } from "react";
 import { useParams } from "react-router";
 
 import { useConsoleEvents } from "../events/useConsoleEvents";
 import { errorMessage } from "../graphql/errorMessage";
-import { PROPOSAL } from "../graphql/operations";
+import { APPROVE_FIX_PROPOSAL, EXCEPTIONS, PROPOSAL, VIEWER } from "../graphql/operations";
 import { ProposalStatusChip } from "./ProposalStatusChip";
-import { failedReasonText, isDrafting } from "./proposalStatus";
+import { RejectProposalDialog } from "./RejectProposalDialog";
+import { canDecide, failedReasonText, isDrafting } from "./proposalStatus";
 
 export function ProposalPage() {
   const { proposalId = "" } = useParams();
@@ -28,6 +31,14 @@ export function ProposalPage() {
     variables: { id: proposalId },
     fetchPolicy: "cache-and-network",
   });
+  const { data: viewer } = useQuery(VIEWER);
+  const [approveFixProposal, approval] = useMutation(APPROVE_FIX_PROPOSAL, {
+    variables: { proposalId },
+    // A stale approve changes the proposal with no data in the reply. The page reads it again.
+    refetchQueries: [PROPOSAL, EXCEPTIONS],
+    onError: () => undefined,
+  });
+  const [rejecting, setRejecting] = useState(false);
   // The row is the truth. The event and each socket open only start a read of it (D18).
   useConsoleEvents({
     onEvent: (event) => {
@@ -45,6 +56,7 @@ export function ProposalPage() {
     return <LinearProgress aria-label="Loading proposal" />;
   }
   const proposal = data.proposal;
+  const isApprover = viewer?.viewer.role === "approver";
 
   return (
     <Stack spacing={2}>
@@ -67,6 +79,41 @@ export function ProposalPage() {
           The draft failed: {failedReasonText(proposal.failedReason)}
         </Alert>
       )}
+      {proposal.approvedBy && (
+        <Alert severity="success" role="status">
+          Approved by {proposal.approvedBy}
+        </Alert>
+      )}
+      {proposal.rejectReason && (
+        <Alert severity="info" role="status">
+          Rejected: {proposal.rejectReason}
+        </Alert>
+      )}
+      {proposal.status === "stale" && (
+        <Alert severity="warning" role="status">
+          An exception of this proposal has changed. Request a new proposal.
+        </Alert>
+      )}
+      {approval.error && <Alert severity="error">{errorMessage(approval.error)}</Alert>}
+      {isApprover && canDecide(proposal.status) && (
+        <Stack direction="row" spacing={1} justifyContent="flex-end">
+          <Button variant="outlined" onClick={() => setRejecting(true)}>
+            Reject
+          </Button>
+          <Button
+            variant="contained"
+            disabled={approval.loading}
+            onClick={() => void approveFixProposal()}
+          >
+            Approve
+          </Button>
+        </Stack>
+      )}
+      <RejectProposalDialog
+        proposalId={proposal.id}
+        open={rejecting}
+        onClose={() => setRejecting(false)}
+      />
       <Paper variant="outlined" sx={{ p: 2 }}>
         <Typography variant="h6" component="h2">
           Exceptions

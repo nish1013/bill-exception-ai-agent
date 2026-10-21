@@ -43,3 +43,12 @@ export const optionalDocumentNumber = (label: string) =>
       (value) => value === "" || hasLetterOrDigit(value),
       `${label} must hold a letter or a digit.`,
     );
+
+// The API refuses an empty reason and a reason over 1000 characters (US9, US13).
+export const REASON_MAX = 1000;
+
+export const reasonText = z
+  .string()
+  .trim()
+  .min(1, "Enter a reason.")
+  .max(REASON_MAX, `Enter at most ${REASON_MAX} characters.`);
