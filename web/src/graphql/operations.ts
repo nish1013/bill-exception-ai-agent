@@ -72,7 +72,52 @@ export const EXCEPTIONS = graphql(`
         severity
         status
         createdAt
+        resolvedBy
+        reason
       }
+    }
+  }
+`);
+
+export const IGNORE_EXCEPTION = graphql(`
+  mutation IgnoreException($exceptionId: UUID!, $reason: String!) {
+    ignoreException(exceptionId: $exceptionId, reason: $reason) {
+      id
+      status
+      resolvedBy
+      reason
+    }
+  }
+`);
+
+export const SUPPLIERS = graphql(`
+  query Suppliers {
+    suppliers {
+      totalCount
+      items {
+        id
+        name
+        vatNumber
+      }
+    }
+  }
+`);
+
+export const ADD_PURCHASE_ORDER = graphql(`
+  mutation AddPurchaseOrder(
+    $poNumber: String!
+    $supplierId: UUID!
+    $amount: MinorUnits!
+    $currency: String!
+  ) {
+    addPurchaseOrder(
+      poNumber: $poNumber
+      supplierId: $supplierId
+      amount: $amount
+      currency: $currency
+    ) {
+      id
+      poNumber
     }
   }
 `);

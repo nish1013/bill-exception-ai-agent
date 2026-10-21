@@ -31,7 +31,7 @@ def _oldest_match(
     if not earlier:
         return None
     first = min(earlier, key=lambda other: other.ingest_order)
-    return Finding(rule, first.id)
+    return Finding.repeat_of(rule, first.id)
 
 
 def _same_invoice_number(bill: CheckedBill, other: CheckedBill) -> bool:

@@ -32,6 +32,9 @@ export interface BillEntry {
   invoiceNumber: string;
   amount: string;
   issueDate: string;
+  vatAmount?: string;
+  poNumber?: string;
+  hasReceipt?: boolean;
 }
 
 // Each run uses its own supplier, so the rows of an earlier run on the same stack do not match.
@@ -72,7 +75,15 @@ export async function fillBill(page: Page, bill: BillEntry): Promise<void> {
   await form.getByLabel("Invoice number").fill(bill.invoiceNumber);
   await form.getByLabel(/^Amount/).fill(bill.amount);
   await form.getByLabel("Issue date").fill(bill.issueDate);
-  await form.getByLabel("Receipt received").check();
+  if (bill.vatAmount !== undefined) {
+    await form.getByLabel(/^VAT amount/).fill(bill.vatAmount);
+  }
+  if (bill.poNumber !== undefined) {
+    await form.getByLabel("PO number").fill(bill.poNumber);
+  }
+  if (bill.hasReceipt ?? true) {
+    await form.getByLabel("Receipt received").check();
+  }
 }
 
 export async function ingestBill(page: Page, bill: BillEntry): Promise<void> {
@@ -99,4 +110,24 @@ export async function selectBill(page: Page, bill: BillEntry): Promise<void> {
   const checkbox = billRow(page, bill).getByRole("checkbox");
   await checkbox.click();
   await expect(checkbox).toBeChecked();
+}
+
+export async function startCheckOf(page: Page, bills: BillEntry[]): Promise<void> {
+  for (const bill of bills) {
+    await selectBill(page, bill);
+  }
+  await page.getByRole("button", { name: "Start check" }).click();
+  const total = bills.length;
+  await expect(page.getByRole("status")).toHaveText(
+    new RegExp(`Check completed: ${total} of ${total} bills checked`),
+  );
+}
+
+export function exceptionRows(page: Page, supplierName: string): Locator {
+  return dataGrid(page, "Exceptions").getByRole("row").filter({ hasText: supplierName });
+}
+
+export async function showStatus(page: Page, status: string): Promise<void> {
+  await page.getByRole("combobox", { name: "Status" }).click();
+  await page.getByRole("option", { name: status, exact: true }).click();
 }

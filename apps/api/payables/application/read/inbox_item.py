@@ -18,3 +18,5 @@ class InboxItem:
     status: ExceptionStatus
     related_bill_id: UUID | None
     created_at: datetime
+    resolved_by: str | None
+    reason: str | None

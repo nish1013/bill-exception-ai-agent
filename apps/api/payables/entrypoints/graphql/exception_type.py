@@ -16,6 +16,8 @@ class ExceptionType(graphene.ObjectType):
     status = graphene.String(required=True)
     related_bill_id = graphene.UUID()
     created_at = graphene.DateTime(required=True)
+    resolved_by = graphene.String()
+    reason = graphene.String()
 
     def resolve_rule(root: InboxItem, info) -> str:
         return root.rule.value

@@ -5,6 +5,7 @@ import graphene
 from payables.adapters.orm.bill_list_query import BillListOrmQuery
 from payables.adapters.orm.check_job_repository import CheckJobOrmRepository
 from payables.adapters.orm.inbox_query import InboxOrmQuery
+from payables.adapters.orm.supplier_list_query import SupplierListOrmQuery
 from payables.adapters.orm.tenant_repository import TenantRepository
 from payables.application.read.bill_list_item import BillListItem
 from payables.application.read.get_check_job import get_check_job
@@ -14,16 +15,19 @@ from payables.application.read.list_exceptions import list_exceptions
 from payables.application.read.list_page import ListPage
 from payables.domain.checks.check_job import CheckJob
 from payables.domain.principal import Principal
+from payables.domain.supplier import Supplier
 from payables.entrypoints.graphql.bill_list_type import BillListType
 from payables.entrypoints.graphql.check_job_type import CheckJobType
 from payables.entrypoints.graphql.exception_list_type import ExceptionListType
 from payables.entrypoints.graphql.mutation import Mutation
+from payables.entrypoints.graphql.supplier_list_type import SupplierListType
 from payables.entrypoints.graphql.viewer import Viewer
 
 
 class Query(graphene.ObjectType):
     viewer = graphene.Field(Viewer, required=True)
     bills = graphene.Field(BillListType, required=True)
+    suppliers = graphene.Field(SupplierListType, required=True)
     exceptions = graphene.Field(
         ExceptionListType,
         required=True,
@@ -42,6 +46,9 @@ class Query(graphene.ObjectType):
 
     def resolve_bills(root, info) -> ListPage[BillListItem]:
         return BillListOrmQuery(_principal(info).tenant_id).latest()
+
+    def resolve_suppliers(root, info) -> ListPage[Supplier]:
+        return SupplierListOrmQuery(_principal(info).tenant_id).by_name()
 
     def resolve_exceptions(
         root, info, status: str | None = None, severity: str | None = None

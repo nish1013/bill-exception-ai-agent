@@ -1,6 +1,7 @@
 from dataclasses import replace
 
 from payables.adapters.orm.bill_repository import BillOrmRepository
+from payables.adapters.orm.outbox_repository import OutboxOrmRepository
 from payables.adapters.orm.purchase_order_repository import PurchaseOrderOrmRepository
 from payables.adapters.orm.supplier_repository import SupplierOrmRepository
 from payables.adapters.orm.tenancy import tenant_transaction
@@ -73,6 +74,7 @@ def test_i5_two_adds_of_one_po_one_row(committed_db):
                 AddPurchaseOrderCommand(number, s1.id, 120000, "GBP"),
                 SupplierOrmRepository(T1),
                 PurchaseOrderOrmRepository(T1),
+                OutboxOrmRepository(T1),
             )
 
         return call

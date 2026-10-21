@@ -29,6 +29,7 @@ class ExceptionRow(models.Model):
         db_table = "exception"
         constraints = [
             models.UniqueConstraint(fields=["bill", "rule", "fingerprint"], name=FINDING_KEY),
+            models.UniqueConstraint(fields=["tenant", "id"], name="exception_tenant_id_key"),
             models.CheckConstraint(
                 condition=Q(rule__in=[rule.value for rule in Rule]), name="exception_rule_known"
             ),

@@ -22,6 +22,9 @@ B1 = CheckedBill(
     amount=Money(120000, "GBP"),
     issue_date=date(2026, 10, 1),
     ingested_at=T0,
+    vat_amount_minor=20000,
+    has_receipt=True,
+    po_number=None,
 )
 
 
@@ -37,20 +40,20 @@ def later(bill: CheckedBill, minutes: int, **changes) -> CheckedBill:
 def test_us6_newer_bill_same_number_is_duplicate():
     b2 = later(B1, 1)
 
-    assert duplicate(b2, [B1]) == Finding(Rule.DUPLICATE, B1.id)
+    assert duplicate(b2, [B1]) == Finding.repeat_of(Rule.DUPLICATE, B1.id)
     assert duplicate(B1, [b2]) is None
 
 
 def test_us6_duplicate_refers_to_first_bill():
     b2, b3 = later(B1, 1), later(B1, 2)
 
-    assert duplicate(b3, [b2, B1]) == Finding(Rule.DUPLICATE, B1.id)
+    assert duplicate(b3, [b2, B1]) == Finding.repeat_of(Rule.DUPLICATE, B1.id)
 
 
 def test_us6_same_ingest_time_orders_by_id():
     twin = replace(B1, id=UUID(int=102))
 
-    assert duplicate(twin, [B1]) == Finding(Rule.DUPLICATE, B1.id)
+    assert duplicate(twin, [B1]) == Finding.repeat_of(Rule.DUPLICATE, B1.id)
     assert duplicate(B1, [twin]) is None
 
 
@@ -71,7 +74,7 @@ def test_us6_other_supplier_is_no_duplicate():
 def test_us6_possible_duplicate_7_day_window(issued, found):
     b3 = later(B1, 1, invoice_number="INV002", issue_date=issued)
 
-    expected = Finding(Rule.POSSIBLE_DUPLICATE, B1.id) if found else None
+    expected = Finding.repeat_of(Rule.POSSIBLE_DUPLICATE, B1.id) if found else None
     assert possible_duplicate(b3, [B1]) == expected
 
 
@@ -94,8 +97,8 @@ def test_us6_run_rules_gives_each_rule_once():
     b2 = later(B1, 1)
     b3 = later(B1, 2, invoice_number="INV002")
 
-    assert run_rules(b3, [B1, b2]) == [Finding(Rule.POSSIBLE_DUPLICATE, B1.id)]
-    assert run_rules(later(B1, 3), [B1, b2, b3]) == [
-        Finding(Rule.DUPLICATE, B1.id),
-        Finding(Rule.POSSIBLE_DUPLICATE, b3.id),
+    assert run_rules(b3, [B1, b2], None) == [Finding.repeat_of(Rule.POSSIBLE_DUPLICATE, B1.id)]
+    assert run_rules(later(B1, 3), [B1, b2, b3], None) == [
+        Finding.repeat_of(Rule.DUPLICATE, B1.id),
+        Finding.repeat_of(Rule.POSSIBLE_DUPLICATE, b3.id),
     ]

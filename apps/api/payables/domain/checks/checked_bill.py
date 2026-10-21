@@ -13,6 +13,9 @@ class CheckedBill:
     amount: Money
     issue_date: date
     ingested_at: datetime
+    vat_amount_minor: int | None
+    has_receipt: bool
+    po_number: str | None
 
     @property
     def ingest_order(self) -> tuple[datetime, str]:

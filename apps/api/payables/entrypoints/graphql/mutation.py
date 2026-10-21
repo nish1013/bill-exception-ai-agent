@@ -5,11 +5,17 @@ import graphene
 from payables.adapters.orm.bill_repository import BillOrmRepository
 from payables.adapters.orm.check_job_repository import CheckJobOrmRepository
 from payables.adapters.orm.checked_bill_repository import CheckedBillOrmRepository
+from payables.adapters.orm.exception_repository import ExceptionOrmRepository
+from payables.adapters.orm.inbox_query import InboxOrmQuery
 from payables.adapters.orm.outbox_repository import OutboxOrmRepository
 from payables.adapters.orm.purchase_order_repository import PurchaseOrderOrmRepository
+from payables.adapters.orm.resolution_repository import ResolutionOrmRepository
 from payables.adapters.orm.supplier_repository import SupplierOrmRepository
 from payables.application.add_purchase_order import AddPurchaseOrderCommand, add_purchase_order
+from payables.application.ignore_exception import ignore_exception
 from payables.application.ingest_bill import IngestBillCommand, ingest_bill
+from payables.application.read.inbox_item import InboxItem
+from payables.application.read.list_exceptions import get_exception
 from payables.application.register_supplier import register_supplier
 from payables.application.start_bill_check import start_bill_check
 from payables.domain.bill_payload import BillPayload
@@ -19,6 +25,7 @@ from payables.domain.purchase_order import PurchaseOrder
 from payables.domain.supplier import Supplier
 from payables.entrypoints.graphql.bill_input import BillInput
 from payables.entrypoints.graphql.check_job_type import CheckJobType
+from payables.entrypoints.graphql.exception_type import ExceptionType
 from payables.entrypoints.graphql.ingest_bill_payload import IngestBillPayload
 from payables.entrypoints.graphql.minor_units import MinorUnits
 from payables.entrypoints.graphql.purchase_order_type import PurchaseOrderType
@@ -51,6 +58,12 @@ class Mutation(graphene.ObjectType):
         required=True,
         bill_ids=graphene.List(graphene.NonNull(graphene.UUID), required=True),
     )
+    ignore_exception = graphene.Field(
+        ExceptionType,
+        required=True,
+        exception_id=graphene.UUID(required=True),
+        reason=graphene.String(required=True),
+    )
 
     def resolve_register_supplier(root, info, name: str, vat_number: str | None = None) -> Supplier:
         principal = _principal(info)
@@ -68,6 +81,7 @@ class Mutation(graphene.ObjectType):
             command,
             SupplierOrmRepository(principal.tenant_id),
             PurchaseOrderOrmRepository(principal.tenant_id),
+            OutboxOrmRepository(principal.tenant_id),
         )
 
     def resolve_ingest_bill(root, info, idempotency_key: str, bill: BillInput) -> IngestBillPayload:
@@ -91,6 +105,18 @@ class Mutation(graphene.ObjectType):
             CheckJobOrmRepository(tenant_id),
             OutboxOrmRepository(tenant_id),
         )
+
+    def resolve_ignore_exception(root, info, exception_id: UUID, reason: str) -> InboxItem:
+        principal = _principal(info)
+        tenant_id = principal.tenant_id
+        ignore_exception(
+            principal,
+            exception_id,
+            reason,
+            ExceptionOrmRepository(tenant_id),
+            ResolutionOrmRepository(tenant_id),
+        )
+        return get_exception(exception_id, InboxOrmQuery(tenant_id))
 
 
 def _principal(info) -> Principal:

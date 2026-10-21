@@ -9,6 +9,7 @@ test("us4 us5 us8: two bills INV-001 and inv 001 give one duplicate", async ({ s
     invoiceNumber: "INV-001",
     amount: "120000",
     issueDate: "2026-10-01",
+    vatAmount: "20000",
   };
   const second = { ...first, invoiceNumber: "inv 001" };
   const page = await signIn(C1);

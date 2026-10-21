@@ -1,3 +1,5 @@
+import pytest
+
 from tests.check_data import (
     add_bill,
     check,
@@ -8,6 +10,8 @@ from tests.check_data import (
 )
 from tests.concurrency import race
 from tests.tenants import T1
+
+pytestmark = pytest.mark.usefixtures("po_100")
 
 
 def test_i6_two_checks_of_b2_one_exception(committed_db):

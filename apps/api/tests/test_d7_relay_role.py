@@ -5,7 +5,15 @@ from payables.adapters.orm.row_level_security import RELAY_ALIAS, relay_role
 from tests.check_data import add_bill, start_job
 from tests.tenants import T1, T2
 
-NOT_GRANTED = ["tenant", "supplier", "purchase_order", "bill", "exception", "check_job_bill"]
+NOT_GRANTED = [
+    "tenant",
+    "supplier",
+    "purchase_order",
+    "bill",
+    "exception",
+    "check_job_bill",
+    "resolution",
+]
 
 
 def _relay_query(sql: str) -> list:

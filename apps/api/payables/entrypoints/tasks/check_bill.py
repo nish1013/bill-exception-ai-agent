@@ -8,6 +8,8 @@ from payables.adapters.broker.routes import CHECK_BILL_TASK
 from payables.adapters.orm.check_job_repository import CheckJobOrmRepository
 from payables.adapters.orm.checked_bill_repository import CheckedBillOrmRepository
 from payables.adapters.orm.exception_repository import ExceptionOrmRepository
+from payables.adapters.orm.purchase_order_repository import PurchaseOrderOrmRepository
+from payables.adapters.orm.resolution_repository import ResolutionOrmRepository
 from payables.adapters.orm.tenancy import tenant_transaction
 from payables.application.check_bill import check_bill, record_check_result
 from payables.domain.checks.check_bill_command import CheckBill
@@ -33,7 +35,9 @@ def check_bill_task(self: Task, tenant_id: str, job_id: str, bill_id: str) -> No
             check_bill(
                 command,
                 CheckedBillOrmRepository(command.tenant_id),
+                PurchaseOrderOrmRepository(command.tenant_id),
                 ExceptionOrmRepository(command.tenant_id),
+                ResolutionOrmRepository(command.tenant_id),
                 jobs,
             )
     except Exception as error:

@@ -8,6 +8,7 @@ import { errorMessage } from "../graphql/errorMessage";
 import { BILLS, START_BILL_CHECK } from "../graphql/operations";
 import { ListLimitNotice } from "../layout/ListLimitNotice";
 import { formatMoney } from "../money";
+import { PurchaseOrderDialog } from "../purchaseOrders/PurchaseOrderDialog";
 import { BillIngestDialog } from "./BillIngestDialog";
 import { CheckJobProgress } from "./CheckJobProgress";
 
@@ -45,6 +46,7 @@ export function BillsPage() {
   const [selection, setSelection] = useState<GridRowSelectionModel>([]);
   const [jobId, setJobId] = useState<string | null>(null);
   const [ingestOpen, setIngestOpen] = useState(false);
+  const [poOpen, setPoOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
   const start = async () => {
@@ -61,6 +63,9 @@ export function BillsPage() {
         <Typography variant="h5" component="h1" sx={{ flexGrow: 1 }}>
           Bills
         </Typography>
+        <Button variant="outlined" onClick={() => setPoOpen(true)}>
+          Add PO
+        </Button>
         <Button variant="outlined" onClick={() => setIngestOpen(true)}>
           Ingest bill
         </Button>
@@ -97,6 +102,14 @@ export function BillsPage() {
         onIngested={() => {
           setIngestOpen(false);
           setNotice("Bill ingested.");
+        }}
+      />
+      <PurchaseOrderDialog
+        open={poOpen}
+        onClose={() => setPoOpen(false)}
+        onAdded={() => {
+          setPoOpen(false);
+          setNotice("PO added. Bills with an open PO mismatch on it are checked again.");
         }}
       />
       <Snackbar
