@@ -10,9 +10,11 @@ from payables.adapters.orm.exceptions import (
     ResolutionOrmRepository,
 )
 from payables.adapters.orm.outbox import OutboxOrmRepository
+from payables.adapters.orm.proposals import ProposalOrmQuery, ProposalOrmRepository
 from payables.adapters.orm.purchase_orders import PurchaseOrderOrmRepository
 from payables.adapters.orm.suppliers import SupplierListOrmQuery, SupplierOrmRepository
 from payables.adapters.orm.tenants import TenantRepository
+from payables.adapters.rate_limit import RedisProposalRateLimiter
 from payables.application.bills import BillListItem, IngestBillCommand, ingest_bill
 from payables.application.checks import get_check_job, start_bill_check
 from payables.application.exceptions import (
@@ -23,6 +25,12 @@ from payables.application.exceptions import (
     list_exceptions,
 )
 from payables.application.pages import ListPage
+from payables.application.proposals import (
+    ProposalItem,
+    get_proposal,
+    list_proposals,
+    request_fix_proposal,
+)
 from payables.application.purchase_orders import AddPurchaseOrderCommand, add_purchase_order
 from payables.application.suppliers import register_supplier
 from payables.domain.access import Principal
@@ -33,6 +41,7 @@ from payables.domain.suppliers import Supplier
 from payables.entrypoints.graphql.bills import BillInput, BillListType, IngestBillPayload
 from payables.entrypoints.graphql.checks import CheckJobType
 from payables.entrypoints.graphql.exceptions import ExceptionListType, ExceptionType
+from payables.entrypoints.graphql.proposals import ProposalListType, ProposalType
 from payables.entrypoints.graphql.purchase_orders import PurchaseOrderType
 from payables.entrypoints.graphql.scalars import MinorUnits
 from payables.entrypoints.graphql.suppliers import SupplierListType, SupplierType
@@ -50,6 +59,8 @@ class Query(graphene.ObjectType):
         severity=graphene.String(),
     )
     check_job = graphene.Field(CheckJobType, required=True, id=graphene.UUID(required=True))
+    proposals = graphene.Field(ProposalListType, required=True, status=graphene.String())
+    proposal = graphene.Field(ProposalType, required=True, id=graphene.UUID(required=True))
 
     def resolve_viewer(root, info) -> Viewer:
         principal = _principal(info)
@@ -73,6 +84,12 @@ class Query(graphene.ObjectType):
 
     def resolve_check_job(root, info, id: UUID) -> CheckJob:
         return get_check_job(id, CheckJobOrmRepository(_principal(info).tenant_id))
+
+    def resolve_proposals(root, info, status: str | None = None) -> ListPage[ProposalItem]:
+        return list_proposals(status, ProposalOrmQuery(_principal(info).tenant_id))
+
+    def resolve_proposal(root, info, id: UUID) -> ProposalItem:
+        return get_proposal(id, ProposalOrmQuery(_principal(info).tenant_id))
 
 
 class Mutation(graphene.ObjectType):
@@ -106,6 +123,11 @@ class Mutation(graphene.ObjectType):
         required=True,
         exception_id=graphene.UUID(required=True),
         reason=graphene.String(required=True),
+    )
+    request_fix_proposal = graphene.Field(
+        ProposalType,
+        required=True,
+        exception_ids=graphene.List(graphene.NonNull(graphene.UUID), required=True),
     )
 
     def resolve_register_supplier(root, info, name: str, vat_number: str | None = None) -> Supplier:
@@ -160,6 +182,19 @@ class Mutation(graphene.ObjectType):
             ResolutionOrmRepository(tenant_id),
         )
         return get_exception(exception_id, InboxOrmQuery(tenant_id))
+
+    def resolve_request_fix_proposal(root, info, exception_ids: list[UUID]) -> ProposalItem:
+        principal = _principal(info)
+        tenant_id = principal.tenant_id
+        proposal_id = request_fix_proposal(
+            principal,
+            exception_ids,
+            RedisProposalRateLimiter(),
+            ExceptionOrmRepository(tenant_id),
+            ProposalOrmRepository(tenant_id),
+            OutboxOrmRepository(tenant_id),
+        )
+        return get_proposal(proposal_id, ProposalOrmQuery(tenant_id))
 
 
 def _principal(info) -> Principal:

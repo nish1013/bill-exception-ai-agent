@@ -6,10 +6,12 @@ from celery import Celery
 from kombu import Connection, Exchange, Queue
 
 CHECKS = "checks"
+PROPOSE_AI = "propose-ai"
 DEAD_LETTER_SUFFIX = ".dlq"
 
 CHECK_BILL_TASK = "payables.check_bill"
 PURCHASE_ORDER_ADDED_TASK = "payables.purchase_order_added"
+DRAFT_FIX_PROPOSAL_TASK = "payables.draft_fix_proposal"
 
 
 @dataclass(frozen=True)
@@ -21,6 +23,7 @@ class Route:
 ROUTES: dict[str, Route] = {
     "CheckBill": Route(CHECK_BILL_TASK, CHECKS),
     "PurchaseOrderAdded": Route(PURCHASE_ORDER_ADDED_TASK, CHECKS),
+    "DraftFixProposal": Route(DRAFT_FIX_PROPOSAL_TASK, PROPOSE_AI),
 }
 
 
@@ -57,8 +60,8 @@ def dead_letter_queue(name: str) -> Queue:
     return Queue(dead_letters, Exchange(dead_letters, type="direct"), routing_key=dead_letters)
 
 
-WORK_QUEUES = (work_queue(CHECKS),)
-DEAD_LETTER_QUEUES = (dead_letter_queue(CHECKS),)
+WORK_QUEUES = (work_queue(CHECKS), work_queue(PROPOSE_AI))
+DEAD_LETTER_QUEUES = (dead_letter_queue(CHECKS), dead_letter_queue(PROPOSE_AI))
 ALL_QUEUES = WORK_QUEUES + DEAD_LETTER_QUEUES
 
 

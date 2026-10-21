@@ -104,6 +104,18 @@ services:
       timeout: 10s
       retries: 12
 
+  worker-propose-ai:
+    <<: *app
+    environment:
+      <<: *app-env
+      LLM_PROVIDER: stub
+    command: ["celery", "-A", "config", "worker", "-Q", "propose-ai", "-c", "2", "-n", "propose-ai@%h"]
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping -d propose-ai@$$HOSTNAME"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+
   web:
     build:
       context: ./web

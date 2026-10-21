@@ -4,6 +4,8 @@ type Query {
   suppliers: SupplierList!
   exceptions(status: String, severity: String): ExceptionList!
   checkJob(id: UUID!): CheckJob!
+  proposals(status: String): ProposalList!
+  proposal(id: UUID!): Proposal!
 }
 
 type Viewer {
@@ -93,12 +95,43 @@ type CheckJob {
   percent: Int!
 }
 
+type ProposalList {
+  items: [Proposal!]!
+  totalCount: Int!
+}
+
+type Proposal {
+  id: UUID!
+  status: String!
+  requestedBy: String!
+  quotaSlot: Int!
+  failedReason: String
+  createdAt: DateTime!
+  exceptions: [ProposalException!]!
+  actions: [ProposalAction!]!
+}
+
+type ProposalException {
+  id: UUID!
+  rule: String!
+  invoiceNumber: String!
+}
+
+type ProposalAction {
+  kind: String!
+  billId: UUID!
+  supplierName: String!
+  invoiceNumber: String!
+  poNumber: String
+}
+
 type Mutation {
   registerSupplier(name: String!, vatNumber: String): Supplier!
   addPurchaseOrder(poNumber: String!, supplierId: UUID!, amount: MinorUnits!, currency: String!): PurchaseOrder!
   ingestBill(idempotencyKey: String!, bill: BillInput!): IngestBillPayload!
   startBillCheck(billIds: [UUID!]!): CheckJob!
   ignoreException(exceptionId: UUID!, reason: String!): Exception!
+  requestFixProposal(exceptionIds: [UUID!]!): Proposal!
 }
 
 type PurchaseOrder {

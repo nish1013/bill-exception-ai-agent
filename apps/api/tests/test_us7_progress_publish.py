@@ -6,7 +6,7 @@ from asgiref.sync import async_to_sync, sync_to_async
 from channels_redis.core import RedisChannelLayer
 
 from payables.adapters.channels import ChannelsConsoleEvents
-from payables.application.checks import ConsoleEvent
+from payables.application.console_events import ConsoleEvent
 from payables.domain.checks.jobs import BillCheckProgress
 from payables.entrypoints import tasks as check_bill_entrypoint
 from payables.entrypoints.tasks import check_bill_task

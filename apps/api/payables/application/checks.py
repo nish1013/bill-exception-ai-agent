@@ -4,6 +4,7 @@ from typing import Protocol
 from uuid import UUID
 
 from payables.application.authorization import require_role
+from payables.application.console_events import ConsoleEvents
 from payables.application.exceptions import ExceptionRepository, ResolutionRepository
 from payables.application.outbox import Outbox
 from payables.application.purchase_orders import PurchaseOrderRepository
@@ -11,8 +12,6 @@ from payables.domain.access import SYSTEM_ACTOR, Principal, Role
 from payables.domain.checks.exceptions import changes_after_check
 from payables.domain.checks.jobs import (
     QUEUED_STALE_AFTER,
-    BillCheckCompleted,
-    BillCheckProgress,
     CheckBill,
     CheckJob,
     CheckResult,
@@ -21,8 +20,6 @@ from payables.domain.checks.jobs import (
 from payables.domain.checks.rules import CheckedBill, Rule, run_rules
 from payables.domain.errors import NotFoundError
 from payables.domain.purchase_orders import PurchaseOrder, PurchaseOrderAdded
-
-type ConsoleEvent = BillCheckProgress | BillCheckCompleted
 
 
 class CheckJobRepository(Protocol):
@@ -49,10 +46,6 @@ class CheckedBillRepository(Protocol):
     def get(self, bill_id: UUID) -> CheckedBill: ...
 
     def earlier_alike(self, bill: CheckedBill) -> list[CheckedBill]: ...
-
-
-class ConsoleEvents(Protocol):
-    def publish(self, tenant_id: UUID, event: ConsoleEvent) -> None: ...
 
 
 def start_bill_check(

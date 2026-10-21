@@ -134,6 +134,10 @@ class ExceptionOrmRepository:
     def exists(self, exception_id: UUID) -> bool:
         return self._rows().filter(id=exception_id).exists()
 
+    def resolutions(self, exception_ids: list[UUID]) -> dict[UUID, ResolutionKind | None]:
+        rows = self._rows().filter(id__in=exception_ids).values_list("id", "resolution__kind")
+        return {exception_id: _kind(kind) for exception_id, kind in rows}
+
     def bills_with_open(self, rule: Rule, fingerprint: str) -> list[UUID]:
         rows = self._rows().filter(
             rule=rule.value, fingerprint=fingerprint, resolution__isnull=True
