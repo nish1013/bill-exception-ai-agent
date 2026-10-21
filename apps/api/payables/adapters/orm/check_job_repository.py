@@ -1,7 +1,7 @@
 from datetime import timedelta
 from uuid import UUID
 
-from django.db.models import Count, DateTimeField, ExpressionWrapper, Value
+from django.db.models import Count, DateTimeField, ExpressionWrapper, QuerySet, Value
 from django.db.models.functions import Now
 
 from payables.adapters.orm.check_job import CheckJobRow
@@ -37,26 +37,12 @@ class CheckJobOrmRepository:
     def is_pending(self, job_id: UUID, bill_id: UUID) -> bool:
         return self._bills(job_id).filter(bill_id=bill_id, result=CheckResult.PENDING).exists()
 
+    def find(self, job_id: UUID) -> CheckJob | None:
+        return self._load(CheckJobRow.objects.all(), job_id)
+
     def lock(self, job_id: UUID) -> CheckJob | None:
         # Two workers that finish the last two bills must not both see the other one pending (I13).
-        row = (
-            CheckJobRow.objects.select_for_update()
-            .filter(tenant_id=self._tenant_id, id=job_id)
-            .values("status", "bill_count")
-            .first()
-        )
-        if row is None:
-            return None
-        counts = dict(
-            self._bills(job_id).values_list("result").annotate(count=Count("id")).order_by()
-        )
-        return CheckJob(
-            id=job_id,
-            status=CheckJobStatus(row["status"]),
-            bill_count=row["bill_count"],
-            ok_count=counts.get(CheckResult.OK.value, 0),
-            failed_count=counts.get(CheckResult.FAILED.value, 0),
-        )
+        return self._load(CheckJobRow.objects.select_for_update(), job_id)
 
     def save_result(
         self, job: CheckJob, bill_id: UUID, result: CheckResult, error: str | None
@@ -78,6 +64,23 @@ class CheckJobOrmRepository:
             return []
         pending = self._bills(job_id).filter(result=CheckResult.PENDING)
         return list(pending.order_by("id").values_list("bill_id", flat=True))
+
+    def _load(self, rows: QuerySet[CheckJobRow], job_id: UUID) -> CheckJob | None:
+        row = (
+            rows.filter(tenant_id=self._tenant_id, id=job_id).values("status", "bill_count").first()
+        )
+        if row is None:
+            return None
+        counts = dict(
+            self._bills(job_id).values_list("result").annotate(count=Count("id")).order_by()
+        )
+        return CheckJob(
+            id=job_id,
+            status=CheckJobStatus(row["status"]),
+            bill_count=row["bill_count"],
+            ok_count=counts.get(CheckResult.OK.value, 0),
+            failed_count=counts.get(CheckResult.FAILED.value, 0),
+        )
 
     def _bills(self, job_id: UUID):
         return CheckJobBillRow.objects.filter(tenant_id=self._tenant_id, job_id=job_id)
