@@ -86,6 +86,10 @@ services:
       timeout: 5s
       retries: 30
 
+  relay:
+    <<: *app
+    command: ["python", "manage.py", "run_relay"]
+
   worker-checks:
     <<: *app
     command: ["celery", "-A", "config", "worker", "-Q", "checks", "-c", "4", "-n", "checks@%h"]

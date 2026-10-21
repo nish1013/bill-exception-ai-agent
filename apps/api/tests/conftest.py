@@ -9,6 +9,9 @@ from django.conf import settings
 from django.db import connections
 from django.test import Client
 
+from config.celery import app
+from payables.adapters.broker.queues import CHECKS, dead_letter_name, declare_queues
+from tests.broker import create_vhost, purge, test_vhost_url
 from tests.tenants import NAMES
 
 GraphQL = Callable[..., Any]
@@ -85,3 +88,20 @@ def committed_db(django_db_setup, django_db_blocker) -> Iterator[None]:
         with connections["owner"].cursor() as cursor:
             for table in TABLES:
                 cursor.execute(f"DELETE FROM {table}")
+
+
+@pytest.fixture(scope="session")
+def broker_url(django_db_setup) -> str:
+    create_vhost(settings.CELERY_BROKER_URL)
+    url = test_vhost_url(settings.CELERY_BROKER_URL)
+    # broker_url keeps the Django setting's value. Celery connects with the read and write URLs.
+    app.conf.update(broker_write_url=url, broker_read_url=url)
+    return url
+
+
+@pytest.fixture
+def queues(broker_url) -> str:
+    with app.connection_for_write() as connection:
+        declare_queues(connection)
+    purge(broker_url, CHECKS, dead_letter_name(CHECKS))
+    return broker_url
