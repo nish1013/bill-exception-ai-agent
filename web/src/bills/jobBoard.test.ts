@@ -1,4 +1,4 @@
-import type { ConsoleEvent } from "../events/consoleEvent";
+import type { CheckJobEvent } from "../events/consoleEvent";
 import { applyEvent, mergeRow, type JobRow } from "./jobBoard";
 
 const J1 = "j1";
@@ -16,15 +16,15 @@ function row(changes: Partial<JobRow> = {}): JobRow {
   };
 }
 
-function progress(seq: number, percent: number, jobId = J1): ConsoleEvent {
+function progress(seq: number, percent: number, jobId = J1): CheckJobEvent {
   return { type: "BillCheckProgress", jobId, seq, percent };
 }
 
-function completed(seq: number, failedCount = 0): ConsoleEvent {
+function completed(seq: number, failedCount = 0): CheckJobEvent {
   return { type: "BillCheckCompleted", jobId: J1, seq, status: "completed", failedCount };
 }
 
-function run(job: JobRow, ...events: ConsoleEvent[]): JobRow {
+function run(job: JobRow, ...events: CheckJobEvent[]): JobRow {
   return events.reduce(applyEvent, job);
 }
 

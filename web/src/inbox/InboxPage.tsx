@@ -1,4 +1,4 @@
-import { useQuery } from "@apollo/client";
+import { useMutation, useQuery } from "@apollo/client";
 import {
   Alert,
   Button,
@@ -10,12 +10,13 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { DataGrid, type GridColDef } from "@mui/x-data-grid";
+import { DataGrid, type GridColDef, type GridRowSelectionModel } from "@mui/x-data-grid";
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router";
 
 import type { ExceptionsQuery } from "../gql/graphql";
 import { errorMessage } from "../graphql/errorMessage";
-import { EXCEPTIONS } from "../graphql/operations";
+import { EXCEPTIONS, REQUEST_FIX_PROPOSAL } from "../graphql/operations";
 import { ListLimitNotice } from "../layout/ListLimitNotice";
 import { IgnoreExceptionDialog, type IgnoredException } from "./IgnoreExceptionDialog";
 
@@ -84,6 +85,16 @@ export function InboxPage() {
     fetchPolicy: "cache-and-network",
   });
   const gridColumns = useMemo(() => columns(setIgnoring), []);
+  const [selection, setSelection] = useState<GridRowSelectionModel>([]);
+  const [requestProposal, requestState] = useMutation(REQUEST_FIX_PROPOSAL);
+  const navigate = useNavigate();
+
+  const request = async () => {
+    const result = await requestProposal({ variables: { exceptionIds: selection.map(String) } });
+    if (result.data) {
+      void navigate(`/proposals/${result.data.requestFixProposal.id}`);
+    }
+  };
 
   return (
     <Stack spacing={2}>
@@ -121,7 +132,15 @@ export function InboxPage() {
             </MenuItem>
           ))}
         </TextField>
+        <Button
+          variant="contained"
+          disabled={selection.length === 0 || requestState.loading}
+          onClick={() => void request().catch(() => undefined)}
+        >
+          Request proposal
+        </Button>
       </Stack>
+      {requestState.error && <Alert severity="error">{errorMessage(requestState.error)}</Alert>}
       {error && <Alert severity="error">{errorMessage(error)}</Alert>}
       {data && (
         <ListLimitNotice shown={data.exceptions.items.length} total={data.exceptions.totalCount} />
@@ -132,6 +151,10 @@ export function InboxPage() {
           rows={data?.exceptions.items ?? []}
           columns={gridColumns}
           loading={loading && !data}
+          checkboxSelection
+          isRowSelectable={({ row }) => row.status === "open"}
+          rowSelectionModel={selection}
+          onRowSelectionModelChange={setSelection}
           disableRowSelectionOnClick
           localeText={{ noRowsLabel: "No exceptions" }}
           initialState={{ pagination: { paginationModel: { pageSize: 25 } } }}

@@ -13,6 +13,7 @@ interface NavTab {
 const TABS: NavTab[] = [
   { path: "/bills", label: "Bills" },
   { path: "/inbox", label: "Inbox" },
+  { path: "/proposals", label: "Proposals" },
 ];
 
 export function AppShell() {
