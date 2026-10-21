@@ -3,7 +3,7 @@ from dataclasses import asdict
 from uuid import UUID
 
 from payables.adapters.orm.outbox import OutboxRow
-from payables.application.ports.outbox import Message
+from payables.application.outbox import Message
 
 
 class OutboxOrmRepository:

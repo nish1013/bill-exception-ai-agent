@@ -3,7 +3,7 @@ from django.db import connections
 from payables.adapters.orm.check_job_repository import CheckJobOrmRepository
 from payables.adapters.orm.outbox_repository import OutboxOrmRepository
 from payables.adapters.orm.tenancy import tenant_transaction
-from payables.application.requeue_stale_check_job import requeue_stale_check_job
+from payables.application.checks import requeue_stale_check_job
 from payables.entrypoints.relay.sweeper import sweep_stale_check_jobs
 from tests.check_data import add_bill, check, start_job
 from tests.concurrency import owner_count

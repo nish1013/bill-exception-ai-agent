@@ -7,12 +7,10 @@ from payables.adapters.orm.check_job_repository import CheckJobOrmRepository
 from payables.adapters.orm.inbox_query import InboxOrmQuery
 from payables.adapters.orm.supplier_list_query import SupplierListOrmQuery
 from payables.adapters.orm.tenant_repository import TenantRepository
-from payables.application.read.bill_list_item import BillListItem
-from payables.application.read.get_check_job import get_check_job
-from payables.application.read.inbox_filter import InboxFilter
-from payables.application.read.inbox_item import InboxItem
-from payables.application.read.list_exceptions import list_exceptions
-from payables.application.read.list_page import ListPage
+from payables.application.bills import BillListItem
+from payables.application.checks import get_check_job
+from payables.application.exceptions import InboxFilter, InboxItem, list_exceptions
+from payables.application.pages import ListPage
 from payables.domain.access import Principal
 from payables.domain.checks.jobs import CheckJob
 from payables.domain.suppliers import Supplier

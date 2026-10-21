@@ -12,8 +12,7 @@ from payables.adapters.orm.exception_repository import ExceptionOrmRepository
 from payables.adapters.orm.purchase_order_repository import PurchaseOrderOrmRepository
 from payables.adapters.orm.resolution_repository import ResolutionOrmRepository
 from payables.adapters.orm.tenancy import tenant_transaction
-from payables.application.check_bill import check_bill, record_check_result
-from payables.application.publish_check_progress import publish_check_progress
+from payables.application.checks import check_bill, publish_check_progress, record_check_result
 from payables.domain.checks.jobs import CheckBill, CheckJob, CheckResult
 
 MAX_ATTEMPTS = 3

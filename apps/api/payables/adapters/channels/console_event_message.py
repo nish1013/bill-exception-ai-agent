@@ -1,6 +1,6 @@
 from typing import Any
 
-from payables.application.ports.console_events import ConsoleEvent
+from payables.application.checks import ConsoleEvent
 from payables.domain.checks.jobs import BillCheckCompleted, BillCheckProgress
 
 

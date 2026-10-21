@@ -1,11 +1,42 @@
 from dataclasses import dataclass
+from datetime import date, datetime
+from typing import Protocol
+from uuid import UUID
 
 from payables.application.authorization import require_role
-from payables.application.ports.bill_repository import BillRepository
-from payables.application.ports.supplier_repository import SupplierRepository
+from payables.application.pages import ListPage
+from payables.application.suppliers import SupplierRepository
 from payables.domain.access import Principal, Role
 from payables.domain.bills import BillDraft, BillPayload, IdempotencyKey, StoredBill
 from payables.domain.errors import IdempotencyMismatchError
+
+
+@dataclass(frozen=True)
+class BillListItem:
+    id: UUID
+    supplier_name: str
+    invoice_number: str
+    amount: int
+    currency: str
+    issue_date: date
+    has_receipt: bool
+    created_at: datetime
+
+
+class BillRepository(Protocol):
+    def find_by_key(self, key: IdempotencyKey) -> StoredBill | None: ...
+
+    def add_or_find(
+        self,
+        supplier_id: UUID,
+        key: IdempotencyKey,
+        payload_hash: str,
+        draft: BillDraft,
+    ) -> StoredBill: ...
+
+
+class BillListQuery(Protocol):
+    def latest(self) -> ListPage[BillListItem]: ...
 
 
 @dataclass(frozen=True)

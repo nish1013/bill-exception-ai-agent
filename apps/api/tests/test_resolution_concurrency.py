@@ -2,7 +2,7 @@ import pytest
 
 from payables.adapters.orm.exception_repository import ExceptionOrmRepository
 from payables.adapters.orm.resolution_repository import ResolutionOrmRepository
-from payables.application.ignore_exception import ignore_exception
+from payables.application.exceptions import ignore_exception
 from payables.domain.errors import ConflictError
 from tests.check_data import (
     C1,

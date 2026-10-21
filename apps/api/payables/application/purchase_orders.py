@@ -1,15 +1,21 @@
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Protocol
 from uuid import UUID, uuid4
 
 from payables.application.authorization import require_role
-from payables.application.ports.outbox import Outbox
-from payables.application.ports.purchase_order_repository import PurchaseOrderRepository
-from payables.application.ports.supplier_repository import SupplierRepository
+from payables.application.outbox import Outbox
+from payables.application.suppliers import SupplierRepository
 from payables.domain.access import Principal, Role
 from payables.domain.errors import NotFoundError
 from payables.domain.money import Money
 from payables.domain.purchase_orders import PurchaseOrder, PurchaseOrderAdded, po_number
+from payables.domain.text import DocumentNumber
+
+
+class PurchaseOrderRepository(Protocol):
+    def add(self, supplier_id: UUID, po_number: DocumentNumber, amount: Money) -> PurchaseOrder: ...
+
+    def find(self, po_number: str) -> PurchaseOrder | None: ...
 
 
 @dataclass(frozen=True)

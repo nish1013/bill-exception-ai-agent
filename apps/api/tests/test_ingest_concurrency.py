@@ -5,9 +5,9 @@ from payables.adapters.orm.outbox_repository import OutboxOrmRepository
 from payables.adapters.orm.purchase_order_repository import PurchaseOrderOrmRepository
 from payables.adapters.orm.supplier_repository import SupplierOrmRepository
 from payables.adapters.orm.tenancy import tenant_transaction
-from payables.application.add_purchase_order import AddPurchaseOrderCommand, add_purchase_order
-from payables.application.ingest_bill import IngestBillCommand, ingest_bill
-from payables.application.register_supplier import register_supplier
+from payables.application.bills import IngestBillCommand, ingest_bill
+from payables.application.purchase_orders import AddPurchaseOrderCommand, add_purchase_order
+from payables.application.suppliers import register_supplier
 from payables.domain.access import Principal, Role
 from payables.domain.errors import ConflictError
 from tests.concurrency import owner_count, race

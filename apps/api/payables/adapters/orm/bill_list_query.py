@@ -1,8 +1,8 @@
 from uuid import UUID
 
 from payables.adapters.orm.bill import BillRow
-from payables.application.read.bill_list_item import BillListItem
-from payables.application.read.list_page import ListPage
+from payables.application.bills import BillListItem
+from payables.application.pages import ListPage
 
 LIST_LIMIT = 500
 

@@ -6,7 +6,7 @@ from channels.layers import BaseChannelLayer, get_channel_layer
 
 from payables.adapters.channels.console_event_message import console_event_message
 from payables.adapters.channels.tenant_group import tenant_group
-from payables.application.ports.console_events import ConsoleEvent
+from payables.application.checks import ConsoleEvent
 
 logger = logging.getLogger(__name__)
 

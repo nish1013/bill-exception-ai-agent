@@ -12,10 +12,9 @@ from payables.adapters.orm.purchase_order_repository import PurchaseOrderOrmRepo
 from payables.adapters.orm.resolution_repository import ResolutionOrmRepository
 from payables.adapters.orm.supplier_repository import SupplierOrmRepository
 from payables.adapters.orm.tenancy import tenant_transaction
-from payables.application.add_purchase_order import AddPurchaseOrderCommand, add_purchase_order
-from payables.application.check_bill import check_bill, record_check_result
-from payables.application.ingest_bill import IngestBillCommand, ingest_bill
-from payables.application.start_bill_check import start_bill_check
+from payables.application.bills import IngestBillCommand, ingest_bill
+from payables.application.checks import check_bill, record_check_result, start_bill_check
+from payables.application.purchase_orders import AddPurchaseOrderCommand, add_purchase_order
 from payables.domain.access import Principal, Role
 from payables.domain.checks.jobs import CheckBill, CheckJob, CheckResult
 from payables.domain.money import Money

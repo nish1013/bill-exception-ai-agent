@@ -8,7 +8,7 @@ from payables.adapters.orm.check_job_repository import CheckJobOrmRepository
 from payables.adapters.orm.exception_repository import ExceptionOrmRepository
 from payables.adapters.orm.outbox_repository import OutboxOrmRepository
 from payables.adapters.orm.tenancy import tenant_transaction
-from payables.application.recheck_po_mismatches import recheck_po_mismatches
+from payables.application.checks import recheck_po_mismatches
 from payables.domain.checks.jobs import recheck_jobs
 from payables.domain.errors import ConflictError
 from payables.domain.purchase_orders import PurchaseOrderAdded

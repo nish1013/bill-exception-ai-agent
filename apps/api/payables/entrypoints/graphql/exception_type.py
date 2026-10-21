@@ -1,6 +1,6 @@
 import graphene
 
-from payables.application.read.inbox_item import InboxItem
+from payables.application.exceptions import InboxItem
 
 
 class ExceptionType(graphene.ObjectType):
