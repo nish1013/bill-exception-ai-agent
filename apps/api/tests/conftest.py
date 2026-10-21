@@ -1,5 +1,6 @@
 import fcntl
 import json
+import os
 import tempfile
 import urllib.parse
 import urllib.request
@@ -9,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from channels.layers import channel_layers
 from django.conf import settings
 from django.db import connections
 from django.test import Client
@@ -63,6 +65,16 @@ def django_db_setup(
         app.close()
         connections["relay"].close()
         owner.creation.destroy_test_db(original_name, verbosity=0, keepdb=django_db_keepdb)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def channel_layer_prefix() -> str:
+    # Each xdist worker sends and reads console events under its own Redis prefix.
+    worker = os.environ.get("PYTEST_XDIST_WORKER", "main")
+    prefix = f"asgi_test_{worker}"
+    settings.CHANNEL_LAYERS["default"]["CONFIG"]["prefix"] = prefix
+    channel_layers.backends.clear()
+    return prefix
 
 
 @pytest.fixture(scope="session")

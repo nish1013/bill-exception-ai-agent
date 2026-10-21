@@ -9,6 +9,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from urllib.parse import urlsplit
 
+from django.conf import settings
 from django.db import connections
 from kombu import Connection
 
@@ -82,6 +83,7 @@ def process_env(broker_url: str, **extra: str) -> dict[str, str]:
     return os.environ | {
         "POSTGRES_DB": connections["owner"].settings_dict["NAME"],
         "CELERY_BROKER_URL": broker_url,
+        "CHANNEL_LAYER_PREFIX": settings.CHANNEL_LAYERS["default"]["CONFIG"]["prefix"],
         **extra,
     }
 
