@@ -37,6 +37,7 @@ def django_db_setup(django_test_environment, django_db_blocker) -> Iterator[None
     with django_db_blocker.unblock():
         owner.creation.create_test_db(verbosity=0, autoclobber=True, serialize=False)
         app.creation.set_as_test_mirror(owner.settings_dict)
+        connections["relay"].creation.set_as_test_mirror(owner.settings_dict)
         with owner.cursor() as cursor:
             for tenant_id, name in NAMES.items():
                 cursor.execute(
@@ -46,6 +47,7 @@ def django_db_setup(django_test_environment, django_db_blocker) -> Iterator[None
     yield
     with django_db_blocker.unblock():
         app.close()
+        connections["relay"].close()
         owner.creation.destroy_test_db(original_name, verbosity=0)
 
 

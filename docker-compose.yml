@@ -8,6 +8,8 @@ x-app-env: &app-env
   POSTGRES_PASSWORD: payables
   POSTGRES_APP_USER: payables_app
   POSTGRES_APP_PASSWORD: payables_app
+  POSTGRES_RELAY_USER: payables_relay
+  POSTGRES_RELAY_PASSWORD: payables_relay
   REDIS_URL: redis://redis:6379/0
   CELERY_BROKER_URL: amqp://payables:payables@rabbitmq:5672//
   OIDC_ISSUER: http://oidc:8080/payables

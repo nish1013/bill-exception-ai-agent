@@ -28,9 +28,11 @@ def _database(user_variable: str, password_variable: str) -> dict:
 
 
 # default is the app role, which row-level security filters. owner owns the tables and migrates.
+# relay bypasses row-level security on the outbox and check_job tables only (D7).
 DATABASES = {
     "default": _database("POSTGRES_APP_USER", "POSTGRES_APP_PASSWORD"),
     "owner": _database("POSTGRES_USER", "POSTGRES_PASSWORD"),
+    "relay": _database("POSTGRES_RELAY_USER", "POSTGRES_RELAY_PASSWORD"),
 }
 
 MIGRATION_MODULES = {"payables": "payables.adapters.orm.migrations"}

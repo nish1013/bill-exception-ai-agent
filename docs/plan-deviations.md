@@ -56,14 +56,14 @@ Built:    `Money` accepts 0 to 2^63 - 1 minor units. The `bill` and `purchase_or
 Why:      A negative bill is a credit note, and v1 has no credit-note story. A negative amount would lower the money at risk total (D13). The upper limit is the range of the `bigint` column.
 Undo:     Remove the lower limit in `apps/api/payables/domain/money.py` and drop the `*_not_negative` constraints with a new migration.
 
-## D7. The relay and the sweeper read all tenants as the owner role (PR 4, 2026-10-21)
+## D7. The relay and the sweeper read all tenants as a narrow relay role (PR 4, 2026-10-21)
 
-In short: The outbox relay and the search for stale jobs connect as the owner role, which row-level security does not filter.
+In short: The outbox relay and the search for stale jobs connect as `payables_relay`, a role that bypasses row-level security and has grants on two tables only.
 
 Plan:     The domain contract says that each transaction runs `SET LOCAL app.tenant_id`, and that row-level security filters each table (D12). It gives no database role for the relay or the sweeper.
-Built:    The relay reads and marks `outbox` rows on the `owner` database alias. The sweeper finds stale jobs on `owner`, then re-enqueues each job in a tenant transaction as the app role.
-Why:      One relay publishes the messages of all tenants, and a transaction can run for one tenant only. The relay touches only `outbox` and sends each row to the broker, never to a user. API requests and worker tasks still run as the app role with the tenant set.
-Undo:     Add a database role with `BYPASSRLS` and grants on `outbox` and `check_job` only, and connect the relay with it. The change is in `apps/api/payables/adapters/outbox/relay.py` and `apps/api/payables/adapters/orm/stale_check_jobs.py`.
+Built:    Migration `0004_relay_role` creates `payables_relay` with `BYPASSRLS` and `NOSUPERUSER`, and grants only `SELECT, UPDATE, DELETE` on `outbox` and `SELECT` on `check_job`. The sweeper finds stale jobs as this role, then re-enqueues each job in a tenant transaction as the app role.
+Why:      One relay publishes the messages of all tenants, and a transaction runs for one tenant only. The owner role can change the schema and passes each policy, which is too wide for a long-running process. The delete right removes sent rows after 7 days (D43).
+Undo:     Point the `relay` database alias in `apps/api/config/settings.py` back to the owner role, and drop the role with a new migration.
 
 ## D8. A check result row has its own id (PR 4, 2026-10-21)
 
