@@ -43,6 +43,8 @@ export const START_BILL_CHECK = graphql(`
       billCount
       okCount
       failedCount
+      seq
+      percent
     }
   }
 `);
@@ -55,7 +57,22 @@ export const CHECK_JOB = graphql(`
       billCount
       okCount
       failedCount
+      seq
+      percent
     }
+  }
+`);
+
+// The cache entry that each console event of a check job updates (D47).
+export const CHECK_JOB_ROW = graphql(`
+  fragment CheckJobRow on CheckJob {
+    id
+    status
+    billCount
+    okCount
+    failedCount
+    seq
+    percent
   }
 `);
 

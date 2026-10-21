@@ -21,6 +21,7 @@ export const SPEC_TENANTS = {
   auth: specTenants(1, "auth"),
   checkSlice: specTenants(2, "check slice"),
   rulesIgnore: specTenants(3, "rules ignore"),
+  liveProgress: specTenants(4, "live progress"),
 } satisfies Record<string, SpecTenants>;
 
 export const ALL_SPEC_TENANTS: Tenant[] = Object.values(SPEC_TENANTS).flatMap((t) => [

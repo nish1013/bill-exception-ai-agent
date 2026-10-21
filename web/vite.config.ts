@@ -7,7 +7,10 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
-    proxy: { "/graphql": `http://localhost:${apiPort}` },
+    proxy: {
+      "/graphql": `http://localhost:${apiPort}`,
+      "/ws": { target: `ws://localhost:${apiPort}`, ws: true },
+    },
   },
   build: {
     sourcemap: false,
