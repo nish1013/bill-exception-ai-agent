@@ -1,6 +1,10 @@
 import { expect } from "@playwright/test";
 
-import { C1, C9, fillBill, selectBill, ingestBill, runSupplier, dataGrid, test } from "./demo";
+import { clerkOf, fillBill, selectBill, ingestBill, runSupplier, dataGrid, test } from "./demo";
+import { SPEC_TENANTS } from "./tenants";
+
+const C1 = clerkOf(SPEC_TENANTS.checkSlice.home);
+const C9 = clerkOf(SPEC_TENANTS.checkSlice.other, "c9");
 
 test("us4 us5 us8: two bills INV-001 and inv 001 give one duplicate", async ({ signIn }) => {
   const supplierName = runSupplier("Slice Foods");

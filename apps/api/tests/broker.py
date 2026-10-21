@@ -12,7 +12,8 @@ from urllib.parse import urlsplit
 from django.db import connections
 from kombu import Connection
 
-TEST_VHOST = "tests"
+# Each xdist worker gets its own vhost, so no worker purges or takes the messages of another.
+TEST_VHOST = f"tests_{os.environ.get('PYTEST_XDIST_WORKER', 'main')}"
 MANAGEMENT_PORT = 15672
 WAIT_SECONDS = 30
 STOP_SECONDS = 10

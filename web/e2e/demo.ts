@@ -1,31 +1,46 @@
 import { test as base, expect, type Browser, type Locator, type Page } from "@playwright/test";
 
+import type { Tenant } from "./tenants";
+
 export interface DemoUser {
-  button: string;
-  tenantName: string;
+  username: string;
   role: string;
+  tenant: Tenant;
+  // A demo user signs in with its own button. Other users sign in with their claims.
+  button?: string;
 }
 
+const ACME: Tenant = { id: "11111111-1111-1111-1111-111111111111", name: "Acme Foods" };
+const BETA: Tenant = { id: "22222222-2222-2222-2222-222222222222", name: "Beta Bakery" };
+
 export const C1: DemoUser = {
-  button: "C1, clerk, Acme Foods",
-  tenantName: "Acme Foods",
+  username: "c1",
   role: "clerk",
+  tenant: ACME,
+  button: "C1, clerk, Acme Foods",
 };
 export const A1: DemoUser = {
-  button: "A1, approver, Acme Foods",
-  tenantName: "Acme Foods",
+  username: "a1",
   role: "approver",
+  tenant: ACME,
+  button: "A1, approver, Acme Foods",
 };
 export const A2: DemoUser = {
-  button: "A2, approver, Acme Foods",
-  tenantName: "Acme Foods",
+  username: "a2",
   role: "approver",
+  tenant: ACME,
+  button: "A2, approver, Acme Foods",
 };
 export const C9: DemoUser = {
-  button: "C9, clerk, Beta Bakery",
-  tenantName: "Beta Bakery",
+  username: "c9",
   role: "clerk",
+  tenant: BETA,
+  button: "C9, clerk, Beta Bakery",
 };
+
+export function clerkOf(tenant: Tenant, username = "c1"): DemoUser {
+  return { username, role: "clerk", tenant };
+}
 
 export interface BillEntry {
   supplierName: string;
@@ -63,9 +78,27 @@ async function signedInPage(browser: Browser, user: DemoUser): Promise<Page> {
   const context = await browser.newContext();
   const page = await context.newPage();
   await page.goto("/bills");
-  await page.getByRole("button", { name: user.button }).click();
-  await expect(page.getByLabel("Signed in as")).toHaveText(`${user.tenantName} · ${user.role}`);
+  if (user.button) {
+    await page.getByRole("button", { name: user.button }).click();
+  } else {
+    await signInWithClaims(page, user);
+  }
+  await expect(page.getByLabel("Signed in as")).toHaveText(`${user.tenant.name} · ${user.role}`);
   return page;
+}
+
+// The mock provider puts the posted claims in the token. The form of the first demo user is
+// reused with the claims of this user.
+async function signInWithClaims(page: Page, user: DemoUser): Promise<void> {
+  const form = page.locator("form").first();
+  const claims = JSON.stringify({ tenant_id: user.tenant.id, role: user.role });
+  await form.locator('input[name="username"]').evaluate(setValue, user.username);
+  await form.locator('input[name="claims"]').evaluate(setValue, claims);
+  await form.getByRole("button").click();
+}
+
+function setValue(input: Element, value: string): void {
+  (input as HTMLInputElement).value = value;
 }
 
 export async function fillBill(page: Page, bill: BillEntry): Promise<void> {
