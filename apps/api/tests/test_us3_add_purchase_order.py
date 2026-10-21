@@ -2,8 +2,8 @@ import uuid
 
 import pytest
 
-from payables.adapters.orm.purchase_order import PurchaseOrderRow
-from payables.adapters.orm.tenancy import tenant_transaction
+from payables.adapters.orm.purchase_orders import PurchaseOrderRow
+from payables.adapters.orm.tenants import tenant_transaction
 from tests.ingest_data import ADD_PO, REGISTER_SUPPLIER, error_of
 from tests.tenants import T1
 

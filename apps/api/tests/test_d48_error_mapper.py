@@ -9,7 +9,7 @@ from payables.domain.errors import (
     RateLimitedError,
     ValidationError,
 )
-from payables.entrypoints.graphql.error_mapper import format_error, transport_status
+from payables.entrypoints.graphql.errors import format_error, transport_status
 
 
 class StaleProposalError(ConflictError):

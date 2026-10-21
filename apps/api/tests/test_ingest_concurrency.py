@@ -1,16 +1,15 @@
 from dataclasses import replace
 
-from payables.adapters.orm.bill_repository import BillOrmRepository
-from payables.adapters.orm.outbox_repository import OutboxOrmRepository
-from payables.adapters.orm.purchase_order_repository import PurchaseOrderOrmRepository
-from payables.adapters.orm.supplier_repository import SupplierOrmRepository
-from payables.adapters.orm.tenancy import tenant_transaction
-from payables.application.add_purchase_order import AddPurchaseOrderCommand, add_purchase_order
-from payables.application.ingest_bill import IngestBillCommand, ingest_bill
-from payables.application.register_supplier import register_supplier
+from payables.adapters.orm.bills import BillOrmRepository
+from payables.adapters.orm.outbox import OutboxOrmRepository
+from payables.adapters.orm.purchase_orders import PurchaseOrderOrmRepository
+from payables.adapters.orm.suppliers import SupplierOrmRepository
+from payables.adapters.orm.tenants import tenant_transaction
+from payables.application.bills import IngestBillCommand, ingest_bill
+from payables.application.purchase_orders import AddPurchaseOrderCommand, add_purchase_order
+from payables.application.suppliers import register_supplier
+from payables.domain.access import Principal, Role
 from payables.domain.errors import ConflictError
-from payables.domain.principal import Principal
-from payables.domain.role import Role
 from tests.concurrency import owner_count, race
 from tests.ingest_data import B1_PAYLOAD
 from tests.tenants import T1

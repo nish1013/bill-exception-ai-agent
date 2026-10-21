@@ -1,9 +1,8 @@
 import pytest
 
-from payables.adapters.orm.bill import BillRow
-from payables.adapters.orm.bill_repository import BillOrmRepository
-from payables.adapters.orm.supplier import SupplierRow
-from payables.adapters.orm.tenancy import tenant_transaction
+from payables.adapters.orm.bills import BillOrmRepository, BillRow
+from payables.adapters.orm.suppliers import SupplierRow
+from payables.adapters.orm.tenants import tenant_transaction
 from tests.ingest_data import INGEST_BILL, REGISTER_SUPPLIER, bill, error_of
 from tests.tenants import T1, T2
 

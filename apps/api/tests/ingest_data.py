@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Any
 
-from payables.domain.bill_payload import BillPayload
+from payables.domain.bills import BillPayload
 
 S1_NAME = "Fresh Farms Ltd"
 S1_VAT = "GB123456789"

@@ -4,7 +4,7 @@ import uuid
 import pytest
 from django.db import connections, transaction
 
-from payables.adapters.orm.tenancy import tenant_transaction
+from payables.adapters.orm.tenants import tenant_transaction
 from tests.check_data import add_bill, check, job_row, start_job
 from tests.concurrency import owner_count
 from tests.ingest_data import error_of

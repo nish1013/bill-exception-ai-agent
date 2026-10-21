@@ -1,2 +1,0 @@
-class PayablesError(Exception):
-    pass

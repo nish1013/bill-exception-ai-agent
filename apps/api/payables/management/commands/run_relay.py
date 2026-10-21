@@ -1,10 +1,9 @@
 from django.core.management.base import BaseCommand
 
 from config.celery import app
-from payables.adapters.broker.celery_publisher import CeleryPublisher
-from payables.adapters.broker.queues import declare_queues
-from payables.adapters.outbox.relay import OutboxRelay
-from payables.entrypoints.relay.relay_loop import RelayLoop
+from payables.adapters.broker import CeleryPublisher, declare_queues
+from payables.adapters.outbox import OutboxRelay
+from payables.entrypoints.relay import RelayLoop
 
 
 class Command(BaseCommand):

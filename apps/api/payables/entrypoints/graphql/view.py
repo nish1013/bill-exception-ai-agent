@@ -4,11 +4,15 @@ from django.db import transaction
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from graphene_django.views import GraphQLView
 
-from payables.adapters.identity.invalid_token_error import InvalidTokenError
-from payables.adapters.identity.jwt_verifier import verifier_from_settings
-from payables.adapters.orm.tenancy import tenant_transaction
-from payables.entrypoints.graphql.authentication import authenticate
-from payables.entrypoints.graphql.error_mapper import (
+from payables.adapters.identity import (
+    InvalidTokenError,
+    JwtVerifier,
+    principal_from_claims,
+    verifier_from_settings,
+)
+from payables.adapters.orm.tenants import tenant_transaction
+from payables.domain.access import Principal
+from payables.entrypoints.graphql.errors import (
     UNAUTHENTICATED,
     format_error,
     transport_status,
@@ -16,6 +20,8 @@ from payables.entrypoints.graphql.error_mapper import (
 )
 
 logger = logging.getLogger(__name__)
+
+BEARER = "bearer"
 
 
 class TenantGraphQLView(GraphQLView):
@@ -43,6 +49,14 @@ class TenantGraphQLView(GraphQLView):
     def get_response(self, request, data, show_graphiql=False):
         body, status = super().get_response(request, data, show_graphiql)
         return body, getattr(self, "_transport_status", None) or status
+
+
+def authenticate(request: HttpRequest, verifier: JwtVerifier) -> Principal:
+    scheme, _, token = request.headers.get("Authorization", "").partition(" ")
+    token = token.strip()
+    if scheme.lower() != BEARER or not token:
+        raise InvalidTokenError("no bearer token")
+    return principal_from_claims(verifier.verify(token))
 
 
 def _unauthenticated() -> JsonResponse:

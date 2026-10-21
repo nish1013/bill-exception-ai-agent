@@ -36,7 +36,7 @@ In short: A resolver error with no mapping returns code `INTERNAL`, status 500 a
 Plan:     The "Validation and responses" table lists 400, 401, 403, 404, 409, 422 and 429. It has no row for an error with no mapping.
 Built:    The error mapper logs the error and returns `extensions.code = INTERNAL` and `extensions.status = 500`. The original message stays out of the response.
 Why:      Graphene returns the text of each exception by default. That text can hold SQL and row values.
-Undo:     Remove the `INTERNAL` branch in `apps/api/payables/entrypoints/graphql/error_mapper.py`. Graphene then returns the original message.
+Undo:     Remove the `INTERNAL` branch in `apps/api/payables/entrypoints/graphql/errors.py`. Graphene then returns the original message.
 
 ## D5. `addPurchaseOrder` takes the currency as its own argument (PR 3, 2026-10-21)
 
@@ -45,7 +45,7 @@ In short: A PO amount is two arguments: `amount` in minor units and `currency`. 
 Plan:     The API table gives `addPurchaseOrder(poNumber, supplierId, amount)`. The Money value object needs integer minor units and an ISO 4217 code (D14).
 Built:    `addPurchaseOrder(poNumber, supplierId, amount: MinorUnits!, currency: String!)`. `MinorUnits` is a scalar that passes any number to `Money`. `Money` refuses a float with status 400.
 Why:      US3 rows 1 and 4 give a currency for each PO, and `amount` alone carries no currency. With the GraphQL `Int` type, `amount: 1200.50` fails in the document parse and the error has no `extensions.status` (D48).
-Undo:     Replace `amount` and `currency` with one `MoneyInput` object in `apps/api/payables/entrypoints/graphql/mutation.py` and `bill_input.py`.
+Undo:     Replace `amount` and `currency` with one `MoneyInput` object in `apps/api/payables/entrypoints/graphql/schema.py` and `bills.py`.
 
 ## D6. Money refuses a negative amount (PR 3, 2026-10-21)
 
@@ -72,7 +72,7 @@ In short: `check_job_bill` has an `id` primary key and a unique key on `(job_id,
 Plan:     The data model in `domain.md` gives `check_job_bill` the primary key `(job_id, bill_id)`.
 Built:    `id` is a `bigint` identity primary key. The unique key `check_job_bill_job_bill_key` on `(job_id, bill_id)` refuses a second result row for one job and bill.
 Why:      Django 5.1 has no composite primary key. The unique key gives the same guard that D42 needs for a repeat `CheckBill`.
-Undo:     Upgrade to Django 5.2, use `CompositePrimaryKey("job", "bill")` in `apps/api/payables/adapters/orm/check_job_bill.py`, and add a migration.
+Undo:     Upgrade to Django 5.2, use `CompositePrimaryKey("job", "bill")` in `apps/api/payables/adapters/orm/checks.py`, and add a migration.
 
 ## D9. A duplicate exception refers to the first earlier bill (PR 4, 2026-10-21)
 
@@ -81,7 +81,7 @@ In short: Each rule gives at most one exception on a bill. The exception refers 
 Plan:     The fingerprint of a `duplicate` exception is "the other bill's id". The plan does not say which bill when a bill repeats two earlier bills, and it does not define "newer".
 Built:    "Earlier" means an earlier ingest time, then a lower bill id. With B1, B2 and B3 for `INV001`, B2 and B3 each get one `duplicate` exception that refers to B1. `possible_duplicate` uses the same choice.
 Why:      A third copy of a bill is one problem, so the inbox shows it once. The product sets the ingest time, but the supplier sets the issue date, and two bills can share one. Bills never change, so a re-check finds the same first bill and the same fingerprint (I6).
-Undo:     Return one finding for each earlier match in `apps/api/payables/domain/checks/duplicate_rules.py`.
+Undo:     Return one finding for each earlier match in `apps/api/payables/domain/checks/rules.py`.
 
 ## D10. A check waits at most 5 s on a lock (PR 4, 2026-10-21)
 
@@ -90,7 +90,7 @@ In short: Each `CheckBill` transaction sets `lock_timeout` to 5 s. A longer wait
 Plan:     The worker table gives `worker-checks` a time limit of 30 s for each bill. It gives no limit for a lock wait.
 Built:    `CHECK_LOCK_TIMEOUT_MS`, default 5000, sets `lock_timeout` in the task transaction. The task has a soft time limit of 30 s and a hard limit of 40 s. The third failure marks the bill `failed` and sends the message to `checks.dlq` (D17).
 Why:      A check waits only behind another check of the same bill or job, and that wait takes milliseconds. A wait of more than 5 s means that a transaction is stuck. The retry frees the worker for other bills.
-Undo:     Remove the `lock_timeout_ms` argument in `apps/api/payables/entrypoints/tasks/check_bill.py`. The 30 s soft time limit then ends a long wait.
+Undo:     Remove the `lock_timeout_ms` argument in `apps/api/payables/entrypoints/tasks.py`. The 30 s soft time limit then ends a long wait.
 
 ## D11. Two US6 rows wait for the resolution table in PR 6 (PR 4, 2026-10-21)
 
@@ -106,9 +106,9 @@ Undo:     None. PR 6 adds the two rows as tests.
 In short: The `exceptions` query gives the severity of each exception and lists high severity first. The inbox shows the rule and the severity.
 
 Plan:     PR 6 lists "severity (D27)" and the console "rule and severity columns". PR 5 delivers US8, and US8 row 1 lists the open exceptions "high severity first".
-Built:    `payables/domain/checks/severity.py` holds the fixed map of D27. The query orders high, medium, low, then the newest first. The inbox has a rule column, a severity column and a severity filter.
+Built:    `RULE_SEVERITY` in `payables/domain/checks/exceptions.py` holds the fixed map of D27. The query orders high, medium, low, then the newest first. The inbox has a rule column, a severity column and a severity filter.
 Why:      US8 row 1 cannot pass with no severity. D27 gives each rule one fixed severity, so the map needs no table or data from PR 6.
-Undo:     Remove the severity order in `apps/api/payables/adapters/orm/inbox_query.py` and the two columns in `web/src/inbox/InboxPage.tsx`. PR 6 then adds them.
+Undo:     Remove the severity order in `apps/api/payables/adapters/orm/exceptions.py` and the two columns in `web/src/inbox/InboxPage.tsx`. PR 6 then adds them.
 
 ## D13. US8 row 1 is tested with open exceptions only (PR 5, 2026-10-21)
 
@@ -133,9 +133,9 @@ Undo:     Delete `apps/api/payables/management/commands/seed_demo.py` and its li
 In short: The `bills` and `exceptions` queries return the newest 500 rows and the total count. When rows are hidden, the console shows "Showing 500 of 612. Narrow the filter to see the rest."
 
 Plan:     The Stack table gives the DataGrid free tier for "sort, filter and page" with no extra code. The API section gives no limit and no paging for `bills` or `exceptions`.
-Built:    `LIST_LIMIT = 500` in `bill_list_query.py` and `inbox_query.py`. Each query returns `items` and `totalCount`. The count uses the same tenant, row-level security and filters as the rows. `ListLimitNotice` shows the notice above the grid.
+Built:    `LIST_LIMIT = 500` in `adapters/orm/bills.py` and `adapters/orm/exceptions.py`. Each query returns `items` and `totalCount`. The count uses the same tenant, row-level security and filters as the rows. `ListLimitNotice` shows the notice above the grid.
 Why:      The free DataGrid pages in the browser, so the API sends the full list in one response. A fixed limit keeps one response bounded. The total tells the clerk that open exceptions are hidden, because a hidden exception is money at risk.
-Undo:     Remove `LIST_LIMIT` and the slice in `apps/api/payables/adapters/orm/bill_list_query.py` and `inbox_query.py`. The notice then never shows.
+Undo:     Remove `LIST_LIMIT` and the slice in `apps/api/payables/adapters/orm/bills.py` and `exceptions.py`. The notice then never shows.
 
 ## D16. The add-PO form gets its suppliers from a `suppliers` query (PR 6, 2026-10-21)
 
@@ -151,16 +151,16 @@ Undo:     Remove `suppliers` from `apps/api/payables/entrypoints/graphql/schema.
 In short: A bill gets `po_mismatch` when no PO has its PO number, or when that PO has another supplier, amount or currency.
 
 Plan:     US6 gives two `po_mismatch` rows: an amount that differs from the PO (B4) and a PO that does not exist (B5). The plan does not say if the supplier must match, and gives no fingerprint for the rule.
-Built:    `payables/domain/checks/po_rules.py` compares the supplier and the `Money` of the PO with the bill. The fingerprint is the normalised PO number, so a bill has at most one `po_mismatch`.
+Built:    `po_mismatch` in `payables/domain/checks/rules.py` compares the supplier and the `Money` of the PO with the bill. The fingerprint is the normalised PO number, so a bill has at most one `po_mismatch`.
 Why:      A bill from S2 that refers to the PO of S1 pays a supplier that the PO did not order from. The PO number fingerprint lets the `PurchaseOrderAdded` handler find the open exceptions of one PO number with one key lookup (D44). Bills and POs never change, so a re-check gives the same fingerprint (I6).
-Undo:     Remove the `supplier_id` comparison in `apps/api/payables/domain/checks/po_rules.py`.
+Undo:     Remove the `supplier_id` comparison in `apps/api/payables/domain/checks/rules.py`.
 
 ## D18. A VAT amount of 0 is not `missing_vat` (PR 6, 2026-10-21)
 
 In short: Only a bill with no VAT amount gets `missing_vat`. A bill with VAT 0 gets no exception.
 
 Plan:     US6 row "B6 has no VAT amount" gives one `missing_vat`. The plan does not say what a VAT amount of 0 gives.
-Built:    `missing_vat` in `payables/domain/checks/bill_rules.py` finds a problem only when `vat_amount_minor` is null. `test_us6_zero_vat_is_not_missing` covers the value 0.
+Built:    `missing_vat` in `payables/domain/checks/rules.py` finds a problem only when `vat_amount_minor` is null. `test_us6_zero_vat_is_not_missing` covers the value 0.
 Why:      A zero-rated or exempt supply has a VAT amount of 0, and that bill is correct. An exception on each such bill fills the inbox with items that are not problems.
 Undo:     Add `or bill.vat_amount_minor == 0` to the condition in `missing_vat`.
 
@@ -187,18 +187,18 @@ Undo:     None. PR 9 adds the `pending_sync` version of the test.
 In short: `ignoreException` refuses a reason that is empty after trim, or longer than 1000 characters, with status 400.
 
 Plan:     US9 refuses an empty reason with 400. The plan gives no maximum length.
-Built:    `IgnoreReason` in `payables/domain/ignore_reason.py` trims the reason and refuses 0 or more than 1000 characters. The console form has the same rule in `web/src/inbox/ignoreForm.schema.ts`.
+Built:    `IgnoreReason` in `payables/domain/checks/exceptions.py` trims the reason and refuses 0 or more than 1000 characters. The console form has the same rule in `web/src/inbox/ignoreForm.schema.ts`.
 Why:      The reason is free text that each inbox response returns. A fixed limit keeps the row and the response bounded. The API refuses a longer reason and never cuts it.
-Undo:     Remove the `MAX_LENGTH` check in `apps/api/payables/domain/ignore_reason.py` and `ignoreForm.schema.ts`.
+Undo:     Remove the `MAX_LENGTH` check in `apps/api/payables/domain/checks/exceptions.py` and `ignoreForm.schema.ts`.
 
 ## D22. A new PO with more than 500 open mismatches starts one job for each 500 bills (PR 6, 2026-10-21)
 
 In short: The `PurchaseOrderAdded` handler splits the bills into check jobs of at most 500 bills each.
 
 Plan:     D44 says that the handler starts a check job for the bills with an open `po_mismatch` on the PO number. US5 gives a maximum of 500 bills for each check job.
-Built:    `recheck_jobs` in `payables/domain/checks/recheck_job.py` makes one job for each 500 bills. Each job id is `uuid5(event_id, n)`, so a repeat event finds the first job and starts nothing.
+Built:    `recheck_jobs` in `payables/domain/checks/jobs.py` makes one job for each 500 bills. Each job id is `uuid5(event_id, n)`, so a repeat event finds the first job and starts nothing.
 Why:      One job of 501 bills breaks the job limit, and the handler would fail to the DLQ with each exception still open. `test_i16_recheck_of_1001_bills_in_three_jobs` gives jobs of 500, 500 and 1.
-Undo:     Start one job of all the bills in `apps/api/payables/application/recheck_po_mismatches.py`. A PO with more than 500 open mismatches then fails to the DLQ.
+Undo:     Start one job of all the bills in `apps/api/payables/application/checks.py`. A PO with more than 500 open mismatches then fails to the DLQ.
 
 ## D23. The job row gives the progress percent, and Redis holds no progress key (PR 7, 2026-10-21)
 
@@ -207,14 +207,14 @@ In short: The percent is the checked bills of the job row divided by its bill co
 Plan:     PR 7 lists "Redis progress". D18 and the domain model give the job progress percent a Redis cache, with the status in the job row.
 Built:    `CheckJob.percent` is `seq * 100 // bill_count`, and `seq` is the count of checked bills of the job. `checkJob` returns `seq` and `percent` from Postgres. Redis holds only the Channels layer messages, which expire after 60 s.
 Why:      Each checked bill already writes its result to `check_job_bill` (PR 4), so the row has the count with no extra write. A second copy in Redis can disagree with the row, and the board reads the row on each socket open (D18).
-Undo:     Write `seq` and `percent` to a Redis key in `payables/adapters/channels/channels_console_events.py`, and read that key in `resolve_check_job`.
+Undo:     Write `seq` and `percent` to a Redis key in `payables/adapters/channels.py`, and read that key in `resolve_check_job`.
 
 ## D24. `BillCheckCompleted` carries `seq` and the final status (PR 7, 2026-10-21)
 
 In short: The completed event has `jobId`, `seq`, `status` and `failedCount`. The status is `completed` or `failed`.
 
 Plan:     The console event table gives `BillCheckCompleted` the fields `job_id` and failed count.
-Built:    `BillCheckCompleted(job_id, seq, status, failed_count)` in `payables/domain/checks/bill_check_completed.py`. The worker sends it after the last `BillCheckProgress` of the job.
+Built:    `BillCheckCompleted(job_id, seq, status, failed_count)` in `payables/domain/checks/jobs.py`. The worker sends it after the last `BillCheckProgress` of the job.
 Why:      A job with no good bill ends as `failed` (D41), and the failed count alone cannot show that. With `seq`, the board drops a late progress event of the same job (D19).
 Undo:     Remove `seq` and `status` from the event and its message. The board then reads the job row to get the final status.
 
@@ -225,4 +225,13 @@ In short: A socket with no valid token is refused at the handshake. An open sock
 Plan:     The API section gives `ws/events/?token=<jwt>` and says that the consumer sends only the token's tenant events. It gives no rule for a bad or expired token. The 401 row of the error table is for GraphQL.
 Built:    The consumer verifies the token with the GraphQL verifier and refuses the handshake (HTTP 403) when the token is missing, bad or has no `tenant_id`. It joins the group of the token's tenant only. A filter removes the token from the uvicorn log lines, and nginx logs `/ws/events/` with no query.
 Why:      A browser cannot read the status of a refused handshake, so 403 and 401 give the same result: the console tries again and then signs in again. A token in a URL is written to each access log, and a log reader must not get a valid token.
-Undo:     Remove the expiry check in `payables/entrypoints/ws/events_consumer.py`, `RedactTokenFilter` in `config/asgi.py`, and the `no_query` log format in `web/nginx/default.conf.template`.
+Undo:     Remove the expiry check in `payables/entrypoints/ws.py`, `RedactTokenFilter` in `config/asgi.py`, and the `no_query` log format in `web/nginx/default.conf.template`.
+
+## D26. One refactor PR between PR 7 and PR 8 groups the Python modules by feature area (refactor, 2026-10-21)
+
+In short: Each Python module holds one feature area, for example `bills.py`. The PR series gets one extra PR that changes no behaviour.
+
+Plan:     The PR list goes from PR 7 to PR 8. The Code layout section gives the layers, but no rule for the size of a module.
+Built:    Each layer has one module for each feature area: `bills`, `suppliers`, `purchase_orders`, `checks` and `exceptions`. Outside migrations and management commands, `payables` has 48 modules, not 140. `row_level_security.py` and `tenant_keys.py` keep their paths, because the migrations import them.
+Why:      One class in each file is not PEP 8 or Django practice. The GraphQL SDL, the migrations and the test ids do not change. Logger names follow the new module paths.
+Undo:     Revert the refactor PR. No data, schema or API contract depends on the module paths.

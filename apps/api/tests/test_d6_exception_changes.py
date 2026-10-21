@@ -2,11 +2,8 @@ from uuid import UUID
 
 import pytest
 
-from payables.domain.checks.exception_changes import changes_after_check
-from payables.domain.checks.finding import Finding
-from payables.domain.checks.resolution_kind import ResolutionKind
-from payables.domain.checks.rule import Rule
-from payables.domain.checks.stored_exception import StoredException
+from payables.domain.checks.exceptions import ResolutionKind, StoredException, changes_after_check
+from payables.domain.checks.rules import Finding, Rule
 
 E1 = UUID(int=1)
 B1 = UUID(int=101)

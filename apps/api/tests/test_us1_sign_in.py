@@ -3,8 +3,7 @@ import json
 
 import pytest
 
-from payables.adapters.orm.tenancy import tenant_transaction
-from payables.adapters.orm.tenant_repository import TenantRepository
+from payables.adapters.orm.tenants import TenantRepository, tenant_transaction
 from tests.tenants import T1, T2
 
 VIEWER = "query { viewer { tenantId tenantName role } }"

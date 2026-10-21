@@ -1,7 +1,7 @@
 import pytest
 from django.db import ProgrammingError, connection, transaction
 
-from payables.adapters.orm.tenancy import tenant_transaction
+from payables.adapters.orm.tenants import tenant_transaction
 from tests.tenants import T1
 
 pytestmark = pytest.mark.django_db

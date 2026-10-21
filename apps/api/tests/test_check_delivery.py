@@ -5,9 +5,8 @@ import pytest
 from django.db import connections, transaction
 
 from config.celery import app
-from payables.adapters.broker.celery_publisher import CeleryPublisher
-from payables.adapters.broker.queues import CHECKS, dead_letter_name
-from payables.adapters.outbox.relay import OutboxRelay
+from payables.adapters.broker import CHECKS, CeleryPublisher, dead_letter_name
+from payables.adapters.outbox import OutboxRelay
 from tests.broker import (
     RELAY_COMMAND,
     dead_letter_retries,

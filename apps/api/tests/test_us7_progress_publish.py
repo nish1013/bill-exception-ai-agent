@@ -5,11 +5,11 @@ import pytest
 from asgiref.sync import async_to_sync, sync_to_async
 from channels_redis.core import RedisChannelLayer
 
-from payables.adapters.channels.channels_console_events import ChannelsConsoleEvents
-from payables.application.ports.console_events import ConsoleEvent
-from payables.domain.checks.bill_check_progress import BillCheckProgress
-from payables.entrypoints.tasks import check_bill as check_bill_entrypoint
-from payables.entrypoints.tasks.check_bill import check_bill_task
+from payables.adapters.channels import ChannelsConsoleEvents
+from payables.application.checks import ConsoleEvent
+from payables.domain.checks.jobs import BillCheckProgress
+from payables.entrypoints import tasks as check_bill_entrypoint
+from payables.entrypoints.tasks import check_bill_task
 from tests.check_data import add_bill, check, start_job
 from tests.concurrency import owner_count
 from tests.socket import events_socket

@@ -3,27 +3,21 @@ from uuid import UUID
 
 from django.db import connections
 
-from payables.adapters.orm.bill_repository import BillOrmRepository
-from payables.adapters.orm.check_job_repository import CheckJobOrmRepository
-from payables.adapters.orm.checked_bill_repository import CheckedBillOrmRepository
-from payables.adapters.orm.exception_repository import ExceptionOrmRepository
-from payables.adapters.orm.outbox_repository import OutboxOrmRepository
-from payables.adapters.orm.purchase_order_repository import PurchaseOrderOrmRepository
-from payables.adapters.orm.resolution_repository import ResolutionOrmRepository
-from payables.adapters.orm.supplier_repository import SupplierOrmRepository
-from payables.adapters.orm.tenancy import tenant_transaction
-from payables.application.add_purchase_order import AddPurchaseOrderCommand, add_purchase_order
-from payables.application.check_bill import check_bill, record_check_result
-from payables.application.ingest_bill import IngestBillCommand, ingest_bill
-from payables.application.start_bill_check import start_bill_check
-from payables.domain.checks.check_bill_command import CheckBill
-from payables.domain.checks.check_job import CheckJob
-from payables.domain.checks.check_result import CheckResult
+from payables.adapters.orm.bills import BillOrmRepository
+from payables.adapters.orm.checks import CheckedBillOrmRepository, CheckJobOrmRepository
+from payables.adapters.orm.exceptions import ExceptionOrmRepository, ResolutionOrmRepository
+from payables.adapters.orm.outbox import OutboxOrmRepository
+from payables.adapters.orm.purchase_orders import PurchaseOrderOrmRepository
+from payables.adapters.orm.suppliers import SupplierOrmRepository
+from payables.adapters.orm.tenants import tenant_transaction
+from payables.application.bills import IngestBillCommand, ingest_bill
+from payables.application.checks import check_bill, record_check_result, start_bill_check
+from payables.application.purchase_orders import AddPurchaseOrderCommand, add_purchase_order
+from payables.domain.access import Principal, Role
+from payables.domain.checks.jobs import CheckBill, CheckJob, CheckResult
 from payables.domain.money import Money
-from payables.domain.po_number import po_number
-from payables.domain.principal import Principal
-from payables.domain.role import Role
-from payables.domain.supplier_identity import SupplierIdentity
+from payables.domain.purchase_orders import po_number
+from payables.domain.suppliers import SupplierIdentity
 from tests.concurrency import owner_count
 from tests.ingest_data import B1_PAYLOAD
 from tests.tenants import T1, T2

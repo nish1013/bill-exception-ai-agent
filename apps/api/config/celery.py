@@ -3,7 +3,7 @@ import os
 from celery import Celery
 from celery.signals import worker_init
 
-from payables.adapters.broker.queues import ALL_QUEUES, declare_queues
+from payables.adapters.broker import ALL_QUEUES, declare_queues
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 

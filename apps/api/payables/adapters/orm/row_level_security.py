@@ -2,7 +2,7 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.db import migrations
 
-from payables.adapters.orm.tenancy import CURRENT_TENANT_SQL
+from payables.adapters.orm.tenants import CURRENT_TENANT_SQL
 
 POLICY = "tenant_isolation"
 APP_ALIAS = "default"

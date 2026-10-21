@@ -4,9 +4,9 @@ from uuid import uuid4
 import pytest
 from asgiref.sync import async_to_sync, sync_to_async
 
-from payables.adapters.channels.channels_console_events import ChannelsConsoleEvents
-from payables.domain.checks.bill_check_progress import BillCheckProgress
-from payables.entrypoints.ws import events_consumer
+from payables.adapters.channels import ChannelsConsoleEvents
+from payables.domain.checks.jobs import BillCheckProgress
+from payables.entrypoints import ws as events_consumer
 from tests.socket import events_socket
 from tests.tenants import T1, T2
 

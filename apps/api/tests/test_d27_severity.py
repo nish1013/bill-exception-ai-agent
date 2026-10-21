@@ -1,7 +1,7 @@
 import pytest
 
-from payables.domain.checks.rule import Rule
-from payables.domain.checks.severity import Severity, rules_with, severity_of
+from payables.domain.checks.exceptions import Severity, rules_with, severity_of
+from payables.domain.checks.rules import Rule
 from payables.domain.errors import ValidationError
 
 
