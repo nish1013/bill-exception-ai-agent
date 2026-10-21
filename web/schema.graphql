@@ -1,7 +1,7 @@
 type Query {
   viewer: Viewer!
-  bills: [Bill!]!
-  exceptions(status: String, severity: String): [Exception!]!
+  bills: BillList!
+  exceptions(status: String, severity: String): ExceptionList!
   checkJob(id: UUID!): CheckJob!
 }
 
@@ -16,6 +16,11 @@ Leverages the internal Python implementation of UUID (uuid.UUID) to provide nati
 in fields, resolvers and input.
 """
 scalar UUID
+
+type BillList {
+  items: [Bill!]!
+  totalCount: Int!
+}
 
 type Bill {
   id: UUID!
@@ -46,6 +51,11 @@ value as specified by
 [iso8601](https://en.wikipedia.org/wiki/ISO_8601).
 """
 scalar DateTime
+
+type ExceptionList {
+  items: [Exception!]!
+  totalCount: Int!
+}
 
 type Exception {
   id: UUID!

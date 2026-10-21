@@ -9,7 +9,8 @@ from tests.tenants import T1, T2
 INBOX = """
 query($status: String, $severity: String) {
   exceptions(status: $status, severity: $severity) {
-    billId supplierName invoiceNumber rule severity status relatedBillId
+    totalCount
+    items { billId supplierName invoiceNumber rule severity status relatedBillId }
   }
 }
 """
@@ -23,9 +24,13 @@ def inbox(graphql, token_for):
     return call
 
 
-def _listed(response) -> list[dict]:
+def _page(response) -> dict:
     assert "errors" not in response.json(), response.json()
     return response.json()["data"]["exceptions"]
+
+
+def _listed(response) -> list[dict]:
+    return _page(response)["items"]
 
 
 def _checked(*bill_ids, tenant_id=T1) -> None:

@@ -1,13 +1,17 @@
 from tests.check_data import add_bill
 from tests.tenants import T2
 
-BILLS = "query { bills { id supplierName invoiceNumber amount currency issueDate hasReceipt } }"
+BILLS = """
+query {
+  bills { totalCount items { id supplierName invoiceNumber amount currency issueDate hasReceipt } }
+}
+"""
 
 
 def _bills(graphql, token: str) -> list[dict]:
     response = graphql(BILLS, token)
     assert "errors" not in response.json(), response.json()
-    return response.json()["data"]["bills"]
+    return response.json()["data"]["bills"]["items"]
 
 
 def test_us4_bills_listed_newest_first(committed_db, graphql, token_for):

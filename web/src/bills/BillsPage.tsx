@@ -6,11 +6,12 @@ import { useState } from "react";
 import type { BillsQuery } from "../gql/graphql";
 import { errorMessage } from "../graphql/errorMessage";
 import { BILLS, START_BILL_CHECK } from "../graphql/operations";
+import { ListLimitNotice } from "../layout/ListLimitNotice";
 import { formatMoney } from "../money";
 import { BillIngestDialog } from "./BillIngestDialog";
 import { CheckJobProgress } from "./CheckJobProgress";
 
-type BillRow = BillsQuery["bills"][number];
+type BillRow = BillsQuery["bills"]["items"][number];
 
 const COLUMNS: GridColDef<BillRow>[] = [
   { field: "invoiceNumber", headerName: "Invoice number", flex: 1 },
@@ -74,10 +75,11 @@ export function BillsPage() {
       {startState.error && <Alert severity="error">{errorMessage(startState.error)}</Alert>}
       {jobId && <CheckJobProgress key={jobId} jobId={jobId} />}
       {error && <Alert severity="error">{errorMessage(error)}</Alert>}
+      {data && <ListLimitNotice shown={data.bills.items.length} total={data.bills.totalCount} />}
       <Paper variant="outlined">
         <DataGrid
           aria-label="Bills"
-          rows={data?.bills ?? []}
+          rows={data?.bills.items ?? []}
           columns={COLUMNS}
           loading={loading && !data}
           checkboxSelection

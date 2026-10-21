@@ -11,20 +11,21 @@ from payables.application.read.get_check_job import get_check_job
 from payables.application.read.inbox_filter import InboxFilter
 from payables.application.read.inbox_item import InboxItem
 from payables.application.read.list_exceptions import list_exceptions
+from payables.application.read.list_page import ListPage
 from payables.domain.checks.check_job import CheckJob
 from payables.domain.principal import Principal
-from payables.entrypoints.graphql.bill_type import BillType
+from payables.entrypoints.graphql.bill_list_type import BillListType
 from payables.entrypoints.graphql.check_job_type import CheckJobType
-from payables.entrypoints.graphql.exception_type import ExceptionType
+from payables.entrypoints.graphql.exception_list_type import ExceptionListType
 from payables.entrypoints.graphql.mutation import Mutation
 from payables.entrypoints.graphql.viewer import Viewer
 
 
 class Query(graphene.ObjectType):
     viewer = graphene.Field(Viewer, required=True)
-    bills = graphene.List(graphene.NonNull(BillType), required=True)
-    exceptions = graphene.List(
-        graphene.NonNull(ExceptionType),
+    bills = graphene.Field(BillListType, required=True)
+    exceptions = graphene.Field(
+        ExceptionListType,
         required=True,
         status=graphene.String(),
         severity=graphene.String(),
@@ -39,12 +40,12 @@ class Query(graphene.ObjectType):
             role=principal.role.value,
         )
 
-    def resolve_bills(root, info) -> list[BillListItem]:
+    def resolve_bills(root, info) -> ListPage[BillListItem]:
         return BillListOrmQuery(_principal(info).tenant_id).latest()
 
     def resolve_exceptions(
         root, info, status: str | None = None, severity: str | None = None
-    ) -> list[InboxItem]:
+    ) -> ListPage[InboxItem]:
         inbox = InboxOrmQuery(_principal(info).tenant_id)
         return list_exceptions(InboxFilter.parse(status, severity), inbox)
 

@@ -6,8 +6,9 @@ import { useState } from "react";
 import type { ExceptionsQuery } from "../gql/graphql";
 import { errorMessage } from "../graphql/errorMessage";
 import { EXCEPTIONS } from "../graphql/operations";
+import { ListLimitNotice } from "../layout/ListLimitNotice";
 
-type ExceptionRow = ExceptionsQuery["exceptions"][number];
+type ExceptionRow = ExceptionsQuery["exceptions"]["items"][number];
 type ChipColor = "error" | "warning" | "default";
 
 const ALL = "all";
@@ -92,10 +93,13 @@ export function InboxPage() {
         </TextField>
       </Stack>
       {error && <Alert severity="error">{errorMessage(error)}</Alert>}
+      {data && (
+        <ListLimitNotice shown={data.exceptions.items.length} total={data.exceptions.totalCount} />
+      )}
       <Paper variant="outlined">
         <DataGrid
           aria-label="Exceptions"
-          rows={data?.exceptions ?? []}
+          rows={data?.exceptions.items ?? []}
           columns={COLUMNS}
           loading={loading && !data}
           disableRowSelectionOnClick

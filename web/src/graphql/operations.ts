@@ -12,14 +12,17 @@ export const VIEWER = graphql(`
 export const BILLS = graphql(`
   query Bills {
     bills {
-      id
-      supplierName
-      invoiceNumber
-      amount
-      currency
-      issueDate
-      hasReceipt
-      createdAt
+      totalCount
+      items {
+        id
+        supplierName
+        invoiceNumber
+        amount
+        currency
+        issueDate
+        hasReceipt
+        createdAt
+      }
     }
   }
 `);
@@ -59,14 +62,17 @@ export const CHECK_JOB = graphql(`
 export const EXCEPTIONS = graphql(`
   query Exceptions($status: String, $severity: String) {
     exceptions(status: $status, severity: $severity) {
-      id
-      billId
-      supplierName
-      invoiceNumber
-      rule
-      severity
-      status
-      createdAt
+      totalCount
+      items {
+        id
+        billId
+        supplierName
+        invoiceNumber
+        rule
+        severity
+        status
+        createdAt
+      }
     }
   }
 `);

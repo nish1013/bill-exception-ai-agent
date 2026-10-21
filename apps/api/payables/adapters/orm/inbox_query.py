@@ -4,6 +4,7 @@ from django.db.models import Case, IntegerField, Value, When
 
 from payables.adapters.orm.exception import ExceptionRow
 from payables.application.read.inbox_item import InboxItem
+from payables.application.read.list_page import ListPage
 from payables.domain.checks.exception_status import ExceptionStatus
 from payables.domain.checks.rule import Rule
 from payables.domain.checks.severity import WORST_FIRST, Severity, rules_with, severity_of
@@ -15,11 +16,11 @@ class InboxOrmQuery:
     def __init__(self, tenant_id: UUID) -> None:
         self._tenant_id = tenant_id
 
-    def worst_first(self, severity: Severity | None) -> list[InboxItem]:
+    def worst_first(self, severity: Severity | None) -> ListPage[InboxItem]:
         rows = ExceptionRow.objects.filter(tenant_id=self._tenant_id)
         if severity is not None:
             rows = rows.filter(rule__in=[rule.value for rule in rules_with(severity)])
-        rows = (
+        listed = (
             rows.annotate(severity_rank=_severity_rank())
             .order_by("severity_rank", "-created_at", "-id")
             .values(
@@ -32,7 +33,7 @@ class InboxOrmQuery:
                 "created_at",
             )[:LIST_LIMIT]
         )
-        return [_item(row) for row in rows]
+        return ListPage(items=[_item(row) for row in listed], total_count=rows.count())
 
 
 def _severity_rank() -> Case:
