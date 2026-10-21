@@ -1,11 +1,27 @@
+import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
 from uuid import UUID
 
-from django.db import connection, transaction
+from django.db import connection, models, transaction
 
 TENANT_SETTING = "app.tenant_id"
 CURRENT_TENANT_SQL = f"NULLIF(current_setting('{TENANT_SETTING}', true), '')::uuid"
+
+
+class Tenant(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+    name = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        app_label = "payables"
+        db_table = "tenant"
+
+
+class TenantRepository:
+    def find_name(self, tenant_id: UUID) -> str | None:
+        return Tenant.objects.filter(id=tenant_id).values_list("name", flat=True).first()
 
 
 @contextmanager

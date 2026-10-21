@@ -1,4 +1,6 @@
 from datetime import timedelta
+from typing import Any, Protocol
+from uuid import UUID
 
 from django.db import transaction
 from django.db.models import DateTimeField, ExpressionWrapper, Value
@@ -6,10 +8,13 @@ from django.db.models.functions import Now
 
 from payables.adapters.orm.outbox import OutboxRow
 from payables.adapters.orm.row_level_security import RELAY_ALIAS
-from payables.adapters.outbox.publisher import Publisher
 
 BATCH_SIZE = 500
 KEEP_SENT_FOR = timedelta(days=7)
+
+
+class Publisher(Protocol):
+    def publish(self, message_id: UUID, command: str, payload: dict[str, Any]) -> None: ...
 
 
 class OutboxRelay:

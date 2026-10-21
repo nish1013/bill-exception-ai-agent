@@ -3,11 +3,11 @@ from uuid import UUID
 from celery import Task, shared_task
 from celery.exceptions import Reject
 
-from payables.adapters.broker.routes import PURCHASE_ORDER_ADDED_TASK
-from payables.adapters.orm.check_job_repository import CheckJobOrmRepository
-from payables.adapters.orm.exception_repository import ExceptionOrmRepository
-from payables.adapters.orm.outbox_repository import OutboxOrmRepository
-from payables.adapters.orm.tenancy import tenant_transaction
+from payables.adapters.broker import PURCHASE_ORDER_ADDED_TASK
+from payables.adapters.orm.checks import CheckJobOrmRepository
+from payables.adapters.orm.exceptions import ExceptionOrmRepository
+from payables.adapters.orm.outbox import OutboxOrmRepository
+from payables.adapters.orm.tenants import tenant_transaction
 from payables.application.checks import recheck_po_mismatches
 from payables.domain.purchase_orders import PurchaseOrderAdded
 

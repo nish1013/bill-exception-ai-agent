@@ -4,10 +4,10 @@ from uuid import UUID, uuid4
 import pytest
 from django.db import connections
 
-from payables.adapters.orm.check_job_repository import CheckJobOrmRepository
-from payables.adapters.orm.exception_repository import ExceptionOrmRepository
-from payables.adapters.orm.outbox_repository import OutboxOrmRepository
-from payables.adapters.orm.tenancy import tenant_transaction
+from payables.adapters.orm.checks import CheckJobOrmRepository
+from payables.adapters.orm.exceptions import ExceptionOrmRepository
+from payables.adapters.orm.outbox import OutboxOrmRepository
+from payables.adapters.orm.tenants import tenant_transaction
 from payables.application.checks import recheck_po_mismatches
 from payables.domain.checks.jobs import recheck_jobs
 from payables.domain.errors import ConflictError

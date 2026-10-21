@@ -1,12 +1,12 @@
 import logging
+from typing import Any
 from uuid import UUID
 
 from asgiref.sync import async_to_sync
 from channels.layers import BaseChannelLayer, get_channel_layer
 
-from payables.adapters.channels.console_event_message import console_event_message
-from payables.adapters.channels.tenant_group import tenant_group
 from payables.application.checks import ConsoleEvent
+from payables.domain.checks.jobs import BillCheckCompleted, BillCheckProgress
 
 logger = logging.getLogger(__name__)
 
@@ -24,3 +24,27 @@ class ChannelsConsoleEvents:
         except Exception:
             # The job row holds the result. The board reads it when its socket reconnects (D18).
             logger.warning("console event not sent: %s", message["event"], exc_info=True)
+
+
+def tenant_group(tenant_id: UUID) -> str:
+    # A socket joins only the group of its token's tenant (D47).
+    return f"tenant.{tenant_id}"
+
+
+def console_event_message(event: ConsoleEvent) -> dict[str, Any]:
+    match event:
+        case BillCheckProgress():
+            return {
+                "type": "BillCheckProgress",
+                "jobId": str(event.job_id),
+                "seq": event.seq,
+                "percent": event.percent,
+            }
+        case BillCheckCompleted():
+            return {
+                "type": "BillCheckCompleted",
+                "jobId": str(event.job_id),
+                "seq": event.seq,
+                "status": event.status.value,
+                "failedCount": event.failed_count,
+            }

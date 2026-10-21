@@ -4,9 +4,8 @@ from django.db import transaction
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from graphene_django.views import GraphQLView
 
-from payables.adapters.identity.invalid_token_error import InvalidTokenError
-from payables.adapters.identity.jwt_verifier import verifier_from_settings
-from payables.adapters.orm.tenancy import tenant_transaction
+from payables.adapters.identity import InvalidTokenError, verifier_from_settings
+from payables.adapters.orm.tenants import tenant_transaction
 from payables.entrypoints.graphql.authentication import authenticate
 from payables.entrypoints.graphql.error_mapper import (
     UNAUTHENTICATED,

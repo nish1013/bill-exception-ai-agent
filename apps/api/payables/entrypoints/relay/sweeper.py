@@ -1,7 +1,6 @@
-from payables.adapters.orm.check_job_repository import CheckJobOrmRepository
-from payables.adapters.orm.outbox_repository import OutboxOrmRepository
-from payables.adapters.orm.stale_check_jobs import stale_check_jobs
-from payables.adapters.orm.tenancy import tenant_transaction
+from payables.adapters.orm.checks import CheckJobOrmRepository, stale_check_jobs
+from payables.adapters.orm.outbox import OutboxOrmRepository
+from payables.adapters.orm.tenants import tenant_transaction
 from payables.application.checks import requeue_stale_check_job
 from payables.domain.checks.jobs import QUEUED_STALE_AFTER
 

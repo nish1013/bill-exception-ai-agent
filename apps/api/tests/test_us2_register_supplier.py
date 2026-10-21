@@ -1,7 +1,7 @@
 import pytest
 
-from payables.adapters.orm.supplier import SupplierRow
-from payables.adapters.orm.tenancy import tenant_transaction
+from payables.adapters.orm.suppliers import SupplierRow
+from payables.adapters.orm.tenants import tenant_transaction
 from tests.ingest_data import REGISTER_SUPPLIER, error_of
 from tests.tenants import T1, T2
 

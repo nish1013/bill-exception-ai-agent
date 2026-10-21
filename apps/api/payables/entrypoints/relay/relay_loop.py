@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 from django.db import close_old_connections
 
-from payables.adapters.outbox.relay import BATCH_SIZE, OutboxRelay
+from payables.adapters.outbox import BATCH_SIZE, OutboxRelay
 from payables.entrypoints.relay.sweeper import sweep_stale_check_jobs
 
 logger = logging.getLogger(__name__)

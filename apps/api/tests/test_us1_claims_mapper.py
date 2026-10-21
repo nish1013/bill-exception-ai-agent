@@ -1,7 +1,6 @@
 import pytest
 
-from payables.adapters.identity.claims_mapper import principal_from_claims
-from payables.adapters.identity.invalid_token_error import InvalidTokenError
+from payables.adapters.identity import InvalidTokenError, principal_from_claims
 from payables.domain.access import Principal, Role
 from tests.tenants import T1
 

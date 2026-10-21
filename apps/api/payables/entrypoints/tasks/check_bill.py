@@ -4,14 +4,12 @@ from celery import Task, shared_task
 from celery.exceptions import Reject
 from django.conf import settings
 
-from payables.adapters.broker.routes import CHECK_BILL_TASK
-from payables.adapters.channels.channels_console_events import ChannelsConsoleEvents
-from payables.adapters.orm.check_job_repository import CheckJobOrmRepository
-from payables.adapters.orm.checked_bill_repository import CheckedBillOrmRepository
-from payables.adapters.orm.exception_repository import ExceptionOrmRepository
-from payables.adapters.orm.purchase_order_repository import PurchaseOrderOrmRepository
-from payables.adapters.orm.resolution_repository import ResolutionOrmRepository
-from payables.adapters.orm.tenancy import tenant_transaction
+from payables.adapters.broker import CHECK_BILL_TASK
+from payables.adapters.channels import ChannelsConsoleEvents
+from payables.adapters.orm.checks import CheckedBillOrmRepository, CheckJobOrmRepository
+from payables.adapters.orm.exceptions import ExceptionOrmRepository, ResolutionOrmRepository
+from payables.adapters.orm.purchase_orders import PurchaseOrderOrmRepository
+from payables.adapters.orm.tenants import tenant_transaction
 from payables.application.checks import check_bill, publish_check_progress, record_check_result
 from payables.domain.checks.jobs import CheckBill, CheckJob, CheckResult
 

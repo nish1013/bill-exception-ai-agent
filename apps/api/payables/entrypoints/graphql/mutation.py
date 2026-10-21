@@ -2,15 +2,16 @@ from uuid import UUID
 
 import graphene
 
-from payables.adapters.orm.bill_repository import BillOrmRepository
-from payables.adapters.orm.check_job_repository import CheckJobOrmRepository
-from payables.adapters.orm.checked_bill_repository import CheckedBillOrmRepository
-from payables.adapters.orm.exception_repository import ExceptionOrmRepository
-from payables.adapters.orm.inbox_query import InboxOrmQuery
-from payables.adapters.orm.outbox_repository import OutboxOrmRepository
-from payables.adapters.orm.purchase_order_repository import PurchaseOrderOrmRepository
-from payables.adapters.orm.resolution_repository import ResolutionOrmRepository
-from payables.adapters.orm.supplier_repository import SupplierOrmRepository
+from payables.adapters.orm.bills import BillOrmRepository
+from payables.adapters.orm.checks import CheckedBillOrmRepository, CheckJobOrmRepository
+from payables.adapters.orm.exceptions import (
+    ExceptionOrmRepository,
+    InboxOrmQuery,
+    ResolutionOrmRepository,
+)
+from payables.adapters.orm.outbox import OutboxOrmRepository
+from payables.adapters.orm.purchase_orders import PurchaseOrderOrmRepository
+from payables.adapters.orm.suppliers import SupplierOrmRepository
 from payables.application.bills import IngestBillCommand, ingest_bill
 from payables.application.checks import start_bill_check
 from payables.application.exceptions import InboxItem, get_exception, ignore_exception

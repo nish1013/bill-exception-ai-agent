@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import IntegrityError, models
 from django.db.models import Q
 
 
@@ -14,3 +14,8 @@ def money_constraints(table: str, *amount_columns: str) -> list[models.CheckCons
         for column in amount_columns
     ]
     return [currency, *amounts]
+
+
+def violated_constraint(error: IntegrityError) -> str | None:
+    diag = getattr(error.__cause__, "diag", None)
+    return getattr(diag, "constraint_name", None)

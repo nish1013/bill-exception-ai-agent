@@ -7,7 +7,7 @@ from uuid import UUID
 
 from django.db import connection, connections
 
-from payables.adapters.orm.tenancy import tenant_transaction
+from payables.adapters.orm.tenants import tenant_transaction
 
 TIMEOUT_SECONDS = 10
 

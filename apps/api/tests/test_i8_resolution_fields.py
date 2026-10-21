@@ -1,7 +1,7 @@
 import pytest
 from django.db import IntegrityError, ProgrammingError, connection, connections, transaction
 
-from payables.adapters.orm.tenancy import tenant_transaction
+from payables.adapters.orm.tenants import tenant_transaction
 from tests.check_data import (
     add_bill,
     check,

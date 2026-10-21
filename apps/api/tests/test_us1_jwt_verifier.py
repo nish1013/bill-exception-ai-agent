@@ -5,8 +5,7 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 from jwt import PyJWK
 
-from payables.adapters.identity.invalid_token_error import InvalidTokenError
-from payables.adapters.identity.jwt_verifier import JwtVerifier
+from payables.adapters.identity import InvalidTokenError, JwtVerifier
 
 ISSUER = "http://oidc.test/payables"
 AUDIENCE = "payables-api"

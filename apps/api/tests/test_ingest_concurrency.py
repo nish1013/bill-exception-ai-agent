@@ -1,10 +1,10 @@
 from dataclasses import replace
 
-from payables.adapters.orm.bill_repository import BillOrmRepository
-from payables.adapters.orm.outbox_repository import OutboxOrmRepository
-from payables.adapters.orm.purchase_order_repository import PurchaseOrderOrmRepository
-from payables.adapters.orm.supplier_repository import SupplierOrmRepository
-from payables.adapters.orm.tenancy import tenant_transaction
+from payables.adapters.orm.bills import BillOrmRepository
+from payables.adapters.orm.outbox import OutboxOrmRepository
+from payables.adapters.orm.purchase_orders import PurchaseOrderOrmRepository
+from payables.adapters.orm.suppliers import SupplierOrmRepository
+from payables.adapters.orm.tenants import tenant_transaction
 from payables.application.bills import IngestBillCommand, ingest_bill
 from payables.application.purchase_orders import AddPurchaseOrderCommand, add_purchase_order
 from payables.application.suppliers import register_supplier

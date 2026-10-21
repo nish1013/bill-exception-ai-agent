@@ -2,11 +2,11 @@ from uuid import UUID
 
 import graphene
 
-from payables.adapters.orm.bill_list_query import BillListOrmQuery
-from payables.adapters.orm.check_job_repository import CheckJobOrmRepository
-from payables.adapters.orm.inbox_query import InboxOrmQuery
-from payables.adapters.orm.supplier_list_query import SupplierListOrmQuery
-from payables.adapters.orm.tenant_repository import TenantRepository
+from payables.adapters.orm.bills import BillListOrmQuery
+from payables.adapters.orm.checks import CheckJobOrmRepository
+from payables.adapters.orm.exceptions import InboxOrmQuery
+from payables.adapters.orm.suppliers import SupplierListOrmQuery
+from payables.adapters.orm.tenants import TenantRepository
 from payables.application.bills import BillListItem
 from payables.application.checks import get_check_job
 from payables.application.exceptions import InboxFilter, InboxItem, list_exceptions

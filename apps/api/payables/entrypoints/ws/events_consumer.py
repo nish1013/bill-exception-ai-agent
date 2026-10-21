@@ -8,10 +8,12 @@ from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from jwt import PyJWKClientConnectionError
 
-from payables.adapters.channels.tenant_group import tenant_group
-from payables.adapters.identity.claims_mapper import principal_from_claims
-from payables.adapters.identity.invalid_token_error import InvalidTokenError
-from payables.adapters.identity.jwt_verifier import verifier_from_settings
+from payables.adapters.channels import tenant_group
+from payables.adapters.identity import (
+    InvalidTokenError,
+    principal_from_claims,
+    verifier_from_settings,
+)
 
 logger = logging.getLogger(__name__)
 

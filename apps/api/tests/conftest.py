@@ -16,7 +16,7 @@ from django.db import connections
 from django.test import Client
 
 from config.celery import app
-from payables.adapters.broker.queues import CHECKS, dead_letter_name, declare_queues
+from payables.adapters.broker import CHECKS, dead_letter_name, declare_queues
 from tests.broker import create_vhost, purge, test_vhost_url
 from tests.check_data import seed_po
 from tests.tenants import NAMES

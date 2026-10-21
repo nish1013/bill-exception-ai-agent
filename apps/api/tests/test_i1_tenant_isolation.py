@@ -2,7 +2,7 @@ import pytest
 from django.db import IntegrityError, connections, transaction
 
 from payables.adapters.orm.row_level_security import POLICY, app_role
-from payables.adapters.orm.tenancy import tenant_transaction
+from payables.adapters.orm.tenants import tenant_transaction
 from tests.tenants import T1, T2
 
 TABLES_WITHOUT_TENANT = {"django_migrations"}

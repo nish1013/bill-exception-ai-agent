@@ -1,12 +1,10 @@
-from payables.adapters.orm.bill import BillRow
-from payables.adapters.orm.check_job import CheckJobRow
-from payables.adapters.orm.check_job_bill import CheckJobBillRow
-from payables.adapters.orm.exception import ExceptionRow
+from payables.adapters.orm.bills import BillRow
+from payables.adapters.orm.checks import CheckJobBillRow, CheckJobRow
+from payables.adapters.orm.exceptions import ExceptionRow, ResolutionRow
 from payables.adapters.orm.outbox import OutboxRow
-from payables.adapters.orm.purchase_order import PurchaseOrderRow
-from payables.adapters.orm.resolution import ResolutionRow
-from payables.adapters.orm.supplier import SupplierRow
-from payables.adapters.orm.tenant import Tenant
+from payables.adapters.orm.purchase_orders import PurchaseOrderRow
+from payables.adapters.orm.suppliers import SupplierRow
+from payables.adapters.orm.tenants import Tenant
 
 __all__ = [
     "BillRow",
