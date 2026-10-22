@@ -1,5 +1,6 @@
 import json
 from collections.abc import Sequence
+from datetime import date
 from typing import Any
 from uuid import UUID
 
@@ -10,9 +11,23 @@ from payables.adapters.orm.outbox import OutboxOrmRepository
 from payables.adapters.orm.proposals import ProposalOrmRepository
 from payables.adapters.orm.tenants import tenant_transaction
 from payables.application.proposals import request_fix_proposal
-from payables.domain.proposals.agent import ModelMessage, ModelReply, ToolCall, ToolSpec
+from payables.domain.proposals.agent import (
+    ModelMessage,
+    ModelReply,
+    ProposalScope,
+    ScopeBill,
+    ScopeException,
+    ToolCall,
+    ToolSpec,
+)
 from tests.check_data import CLERKS, add_bill, check, exception_id, start_job
 from tests.tenants import T1
+
+# Ids of uuid4 shape. An id of only digits can pass the card checksum, and redaction removes it.
+SCOPE_P1 = UUID("4f1c2a9e-7b3d-4c8a-9e21-b5d6f0a1c3e7")
+SCOPE_E1 = UUID("e1a7c3d9-2f4b-4a6e-8c1d-3b5f7a9c0e2d")
+SCOPE_B1 = UUID("b1d4f6a8-3c5e-4b7d-9f1a-2c4e6a8b0d3f")
+SCOPE_B2 = UUID("b2e5a7c9-4d6f-4c8e-a02b-3d5f7b9c1e4a")
 
 TODAY = "(now() AT TIME ZONE 'UTC')::date"
 
@@ -110,6 +125,30 @@ class ScriptedLlm:
 
     def sent_text(self) -> str:
         return json.dumps([[m.content for m in messages] for messages in self.inputs])
+
+
+def duplicate_scope(supplier_name: str = "Fresh Farms Ltd") -> ProposalScope:
+    """P1 holds one exception: B2 is a duplicate of B1. No database row."""
+
+    def bill(bill_id: UUID) -> ScopeBill:
+        return ScopeBill(
+            id=bill_id,
+            supplier_name=supplier_name,
+            invoice_number="INV-001",
+            amount_minor=120000,
+            currency="GBP",
+            vat_amount_minor=20000,
+            issue_date=date(2026, 10, 1),
+            po_number=None,
+            has_receipt=True,
+        )
+
+    return ProposalScope(
+        proposal_id=SCOPE_P1,
+        exceptions=[ScopeException(SCOPE_E1, "duplicate", SCOPE_B2, SCOPE_B1)],
+        bills={SCOPE_B1: bill(SCOPE_B1), SCOPE_B2: bill(SCOPE_B2)},
+        purchase_orders={},
+    )
 
 
 def calls(*names_and_arguments: tuple[str, dict[str, Any]]) -> ModelReply:

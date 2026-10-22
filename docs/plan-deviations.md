@@ -388,3 +388,21 @@ Plan:     The Domain contract gives "5 attempts, exponential backoff from 10 s, 
 Built:    `APPLY_FIRST_RETRY_SECONDS` sets the first wait, with a default of 10. `scripts/test-all.sh` sets it to 1 for the Compose stack. The pytest worker tests set it to 0.
 Why:      With 10 s, one `sync_failed` takes 150 s, which is more than the Playwright limit of 60 s for one test. The number of attempts and the doubling stay the same.
 Undo:     Remove the variable from `scripts/test-all.sh`, and give the fail-mode test in `sync.spec.ts` a limit of 180 s.
+
+## D44. The recorded OpenAI responses are written in the API shape, not captured from a live call (PR 12, 2026-10-22)
+
+In short: The contract test replays 4 Chat Completions responses from a file. The file follows the API response shape, but no live call produced it.
+
+Plan:     PR 12 is accepted when the contract tests for `LlmPort` pass for both adapters, "the OpenAI one with a recorded response".
+Built:    `tests/recordings/openai_chat_completions.json` holds 4 responses: `list_exceptions`, `draft_hold` on B2, `approve_fix_proposal` with `draft_hold`, and a final text. An `httpx.MockTransport` replays them through the `openai` client. The file holds no key and no organisation id.
+Why:      The build environment had no `OPENAI_API_KEY`, so no live response was available to capture. The `openai` client parses each response into its typed models, so a response with the wrong shape fails the test.
+Undo:     Run `make test-openai` with a key, capture its 3 responses, and replace the 4 entries. Keep the `approve_fix_proposal` entry, because no live model calls a tool that it was not given.
+
+## D45. `pytest -m openai` runs in `worker-propose-ai` through `make test-openai`, not in `make test-all` (PR 12, 2026-10-22)
+
+In short: The live draft runs only with `make test-openai`. `make test-all` and CI collect the test in the `api` container, which has no key, so it is always skipped there.
+
+Plan:     PR 12 says that `pytest -m openai` runs one live draft when `OPENAI_API_KEY` is set. It also says that the key is only in the `worker-propose-ai` environment, and that the stub stays the CI default.
+Built:    `make test-openai` runs `pytest -m openai` in the `worker-propose-ai` container. `scripts/test-all.sh` exports `LLM_PROVIDER=stub`, so a shell that selects OpenAI does not change a test run.
+Why:      `make test-all` runs pytest in the `api` container. A key there breaks the rule that only `worker-propose-ai` holds it, and `scripts/check-llm-key.sh` fails the run.
+Undo:     Add a `docker compose exec -T worker-propose-ai uv run pytest -m openai -n 0` line to `scripts/test-all.sh`. Each local run with a key then makes live calls and costs money.

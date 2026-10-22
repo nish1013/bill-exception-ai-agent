@@ -113,7 +113,10 @@ services:
     <<: *app
     environment:
       <<: *app-env
-      LLM_PROVIDER: stub
+      # Only this worker holds the model key. The API, the other workers and the web hold none (D54).
+      LLM_PROVIDER: ${LLM_PROVIDER:-stub}
+      LLM_MODEL: ${LLM_MODEL:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     command: ["celery", "-A", "config", "worker", "-Q", "propose-ai", "-c", "2", "-n", "propose-ai@%h"]
     healthcheck:
       test: ["CMD-SHELL", "celery -A config inspect ping -d propose-ai@$$HOSTNAME"]

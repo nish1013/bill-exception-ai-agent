@@ -13,6 +13,7 @@ dependencies = [
     "channels>=4.2,<5",
     "channels-redis>=4.2,<5",
     "websockets>=13,<16",
+    "openai>=2,<3",
 ]
 
 [dependency-groups]
@@ -33,6 +34,7 @@ testpaths = ["tests"]
 # One process per CPU. Each gets its own test database and broker vhost. A chunk of one test
 # keeps the slow broker tests on different workers.
 addopts = "-n auto --maxschedchunk 1"
+markers = ["openai: a live call to the OpenAI API, skipped when OPENAI_API_KEY is not set"]
 
 [tool.ruff]
 line-length = 100

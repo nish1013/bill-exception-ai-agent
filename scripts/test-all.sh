@@ -29,6 +29,9 @@ web() {
 # sync.spec.ts waits for 5 failed apply attempts: 1 + 2 + 4 + 8 s, not the default 150 s (D9).
 export APPLY_FIRST_RETRY_SECONDS="${APPLY_FIRST_RETRY_SECONDS:-1}"
 
+# CI and each local run use the stub model, also when the shell selects OpenAI (D54).
+export LLM_PROVIDER=stub
+
 docker compose up -d --build --wait
 run python manage.py migrate --database owner --noinput
 run python manage.py seed_demo
@@ -44,5 +47,6 @@ web run lint
 web run typecheck
 web run test
 web run build
+scripts/check-llm-key.sh
 npx --prefix web playwright install ${CI:+--with-deps} chromium
 web run e2e
