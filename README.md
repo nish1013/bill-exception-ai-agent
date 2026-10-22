@@ -189,6 +189,7 @@ exception resolved and the action once in the accounting stub.
 ## Deploy shape
 
 `infra/` is a Terraform sketch of an ECS Fargate deploy. CI validates it. It is not applied.
+State goes to S3 with a native lock file. Copy `infra/backend.hcl.example` to `infra/backend.hcl`, then run `terraform init -backend-config=backend.hcl`.
 
 ```
 ALB -> web (nginx, console) -> api
