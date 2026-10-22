@@ -5,3 +5,5 @@ __pycache__/
 .ruff_cache/
 .env
 test-results/
+infra/.terraform/
+infra/.terraform.lock.hcl

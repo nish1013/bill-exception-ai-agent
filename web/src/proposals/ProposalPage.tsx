@@ -37,6 +37,8 @@ export function ProposalPage() {
   const { data, error, refetch } = useQuery(PROPOSAL, {
     variables: { id: proposalId },
     fetchPolicy: "cache-and-network",
+    // A refetch that joins a read already in flight gets the row as it was before the event.
+    context: { queryDeduplication: false },
   });
   const { data: viewer } = useQuery(VIEWER);
   const [approveFixProposal, approval] = useMutation(APPROVE_FIX_PROPOSAL, {

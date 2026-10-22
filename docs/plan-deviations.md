@@ -406,3 +406,12 @@ Plan:     PR 12 says that `pytest -m openai` runs one live draft when `OPENAI_AP
 Built:    `make test-openai` runs `pytest -m openai` in the `worker-propose-ai` container. `scripts/test-all.sh` exports `LLM_PROVIDER=stub`, so a shell that selects OpenAI does not change a test run.
 Why:      `make test-all` runs pytest in the `api` container. A key there breaks the rule that only `worker-propose-ai` holds it, and `scripts/check-llm-key.sh` fails the run.
 Undo:     Add a `docker compose exec -T worker-propose-ai uv run pytest -m openai -n 0` line to `scripts/test-all.sh`. Each local run with a key then makes live calls and costs money.
+
+## D46. The four demo users are C1, A1, A2 and C9, so Beta Bakery has no approver (PR 13, 2026-10-22)
+
+In short: `make demo` uses the four users that the OIDC provider already holds. Acme Foods has one clerk and two approvers. Beta Bakery has one clerk.
+
+Plan:     PR 13 says that `make demo` seeds "four users (clerk and approver in each)".
+Built:    `dev/oidc/login.html` keeps C1, A1 and A2 for Acme Foods and C9 for Beta Bakery. `seed_demo` writes tenants, suppliers, POs and bills. It writes no user, because users live in the identity provider (D34).
+Why:      D55 gives four users, and the example data in `domain.md` gives T2 one clerk only. A clerk and an approver in each tenant also make four users, but drop A2, whom the stories and `auth.spec.ts` use.
+Undo:     Add an `a9` approver for Beta Bakery to `dev/oidc/config.json`, `dev/oidc/login.html` and `web/e2e/demo.ts`, and update D55 and `domain.md` to five users.

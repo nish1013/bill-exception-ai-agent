@@ -54,12 +54,14 @@ def start_bill_check(
     bills: CheckedBillRepository,
     jobs: CheckJobRepository,
     outbox: Outbox,
+    *,
+    job_id: UUID | None = None,
 ) -> CheckJob:
     require_role(principal, Role.CLERK)
     to_check = CheckJob.bills_to_check(bill_ids)
     if bills.existing_ids(to_check) != set(to_check):
         raise NotFoundError("bill not found")
-    job = jobs.add(principal.subject, to_check)
+    job = jobs.add(principal.subject, to_check, job_id)
     # The job and its messages commit in the caller's transaction (I14, D4).
     outbox.add([CheckBill(principal.tenant_id, job.id, bill_id) for bill_id in to_check])
     return job
