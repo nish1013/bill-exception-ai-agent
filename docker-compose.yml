@@ -84,6 +84,10 @@ services:
 
   api:
     <<: *app
+    environment:
+      <<: *app-env
+      # Only the API and the apply worker hold the callback secret (D23).
+      ACCOUNTING_CALLBACK_SECRET: dev-only-callback-secret
     ports:
       - "${API_PORT:-8000}:8000"
     healthcheck:
@@ -113,6 +117,21 @@ services:
     command: ["celery", "-A", "config", "worker", "-Q", "propose-ai", "-c", "2", "-n", "propose-ai@%h"]
     healthcheck:
       test: ["CMD-SHELL", "celery -A config inspect ping -d propose-ai@$$HOSTNAME"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+
+  worker-apply:
+    <<: *app
+    environment:
+      <<: *app-env
+      ACCOUNTING_STUB_MODE: ${ACCOUNTING_STUB_MODE:-ok}
+      ACCOUNTING_CALLBACK_URL: http://api:8000/callbacks/accounting/stub
+      ACCOUNTING_CALLBACK_SECRET: dev-only-callback-secret
+      APPLY_FIRST_RETRY_SECONDS: ${APPLY_FIRST_RETRY_SECONDS:-10}
+    command: ["celery", "-A", "config", "worker", "-Q", "apply", "-c", "2", "-n", "apply@%h"]
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping -d apply@$$HOSTNAME"]
       interval: 10s
       timeout: 10s
       retries: 12

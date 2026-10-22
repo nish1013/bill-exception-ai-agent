@@ -26,6 +26,8 @@ GraphQL = Callable[..., Any]
 
 # Children first, so each delete passes the foreign keys.
 TABLES = (
+    "stub_ledger",
+    "stub_mode",
     "audit",
     "proposal_action",
     "resolution",

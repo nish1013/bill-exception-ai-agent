@@ -6,6 +6,7 @@ type Query {
   checkJob(id: UUID!): CheckJob!
   proposals(status: String): ProposalList!
   proposal(id: UUID!): Proposal!
+  accountingLedger: LedgerList!
 }
 
 type Viewer {
@@ -126,6 +127,24 @@ type ProposalAction {
   supplierName: String!
   invoiceNumber: String!
   poNumber: String
+  syncKey: UUID!
+  status: String!
+  attempts: Int!
+}
+
+type LedgerList {
+  items: [LedgerEntry!]!
+  totalCount: Int!
+}
+
+type LedgerEntry {
+  syncKey: UUID!
+  kind: String!
+  supplierName: String!
+  invoiceNumber: String!
+  poNumber: String
+  answer: String!
+  receivedAt: DateTime!
 }
 
 type Mutation {
@@ -137,6 +156,7 @@ type Mutation {
   requestFixProposal(exceptionIds: [UUID!]!): Proposal!
   approveFixProposal(proposalId: UUID!): Proposal!
   rejectFixProposal(proposalId: UUID!, reason: String!): Proposal!
+  retrySync(proposalId: UUID!): Proposal!
 }
 
 type PurchaseOrder {

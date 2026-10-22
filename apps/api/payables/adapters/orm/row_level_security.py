@@ -59,6 +59,22 @@ def tenant_isolation(
     return migrations.RunPython(forwards, migrations.RunPython.noop)
 
 
+def grant_columns(
+    table: str, privilege: str, columns: list[str], alias: str = APP_ALIAS
+) -> migrations.RunPython:
+    """Give the role of one database alias one privilege on the named columns only."""
+
+    def forwards(apps, schema_editor) -> None:
+        names = ", ".join(schema_editor.quote_name(column) for column in columns)
+        role = settings.DATABASES[alias]["USER"]
+        schema_editor.execute(
+            f"GRANT {privilege} ({names}) ON {schema_editor.quote_name(table)} "
+            f"TO {schema_editor.quote_name(role)}"
+        )
+
+    return migrations.RunPython(forwards, migrations.RunPython.noop)
+
+
 def _create_app_role(apps, schema_editor) -> None:
     if app_role() == schema_editor.connection.settings_dict["USER"]:
         raise ImproperlyConfigured("The app role must differ from the role that runs migrations.")

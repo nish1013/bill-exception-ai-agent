@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Navigate, RouterProvider, createBrowserRouter } from "react-router";
 
+import { AccountingStubPage } from "./accounting/AccountingStubPage";
 import { BillsPage } from "./bills/BillsPage";
 import { InboxPage } from "./inbox/InboxPage";
 import { AppShell } from "./layout/AppShell";
@@ -21,6 +22,7 @@ export function App() {
             { path: "inbox", element: <InboxPage /> },
             { path: "proposals", element: <ProposalsPage /> },
             { path: "proposals/:proposalId", element: <ProposalPage /> },
+            { path: "accounting-stub", element: <AccountingStubPage /> },
             { path: "*", element: <Navigate to="/bills" replace /> },
           ],
         },

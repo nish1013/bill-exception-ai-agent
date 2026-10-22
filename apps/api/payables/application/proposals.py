@@ -52,6 +52,7 @@ from payables.domain.proposals.proposals import (
     require_second_person,
     stale_entry,
 )
+from payables.domain.proposals.sync import ActionStatus
 
 
 @dataclass(frozen=True)
@@ -68,6 +69,9 @@ class ProposalActionItem:
     supplier_name: str
     invoice_number: str
     po_number: str | None
+    sync_key: UUID
+    status: ActionStatus
+    attempts: int
 
 
 @dataclass(frozen=True)

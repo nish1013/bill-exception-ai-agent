@@ -66,6 +66,15 @@ CELERY_IMPORTS = ["payables.entrypoints.tasks"]
 LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "stub")
 RATE_LIMIT_PREFIX = os.environ.get("RATE_LIMIT_PREFIX", "ratelimit")
 
+# The demo accounting stub answers ok, fail or callback (D51). A stub_mode row sets one tenant.
+ACCOUNTING_STUB_MODE = os.environ.get("ACCOUNTING_STUB_MODE", "ok")
+ACCOUNTING_CALLBACK_URL = os.environ.get(
+    "ACCOUNTING_CALLBACK_URL", "http://api:8000/callbacks/accounting/stub"
+)
+ACCOUNTING_CALLBACK_SECRET = os.environ.get("ACCOUNTING_CALLBACK_SECRET", "")
+# The first wait between apply attempts. Each next wait doubles (D9).
+APPLY_FIRST_RETRY_SECONDS = float(os.environ.get("APPLY_FIRST_RETRY_SECONDS", "10"))
+
 CHECK_LOCK_TIMEOUT_MS = int(os.environ.get("CHECK_LOCK_TIMEOUT_MS", "5000"))
 
 OIDC_ISSUER = os.environ["OIDC_ISSUER"]

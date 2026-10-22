@@ -343,3 +343,48 @@ Plan:     PR 4 gives "`startBillCheck` returns in under 500 ms with 500 bills" a
 Built:    `test_us5_500_bills_same_statement_count_as_5` counts the SQL statements of a request with 5 bills and with 500 bills. Both counts are 7. `make bench` runs `benchmarks/start_bill_check.py`, outside the test folder. It makes one warm-up call and 5 timed calls with 500 bills, and prints the median against 500 ms.
 Why:      One wall-clock sample on a shared CI runner failed at 545 ms and 780 ms, and passed on the next run of the same commit. A query for each bill adds 500 statements, and the count test fails on it. The time of a constant number of statements does not grow with the number of bills.
 Undo:     Add the `timing` marker again and run a timed test alone after the parallel run in `scripts/test-all.sh`.
+
+## D39. A `stub_mode` row sets the stub answer for one tenant (PR 10, 2026-10-22)
+
+In short: The demo stub reads the answer of a tenant from its `stub_mode` row. `ACCOUNTING_STUB_MODE` is the answer for each tenant with no row.
+
+Plan:     PR 10 says that `ACCOUNTING_STUB_MODE=ok|fail|callback` sets the answer of the stub. D51 gives the same variable.
+Built:    `StubAccounting` in `payables/adapters/accounting.py` reads the `stub_mode` row of the action's tenant, else the variable. Only the owner role writes the row. `sync.spec.ts` and `approve.spec.ts` set it with `psql`.
+Why:      `sync.spec.ts` needs mode `fail`, then mode `ok`, on one running stack. A variable changes only with a worker restart, and it changes the answer for each spec that runs in parallel.
+Undo:     Remove `StubModeRow` and the `stub_mode` table, and read only `ACCOUNTING_STUB_MODE`. Each spec then restarts `worker-apply` to change the mode, and runs alone.
+
+## D40. The sync key is a random UUID, not `P1:hold:B2` (PR 10, 2026-10-22)
+
+In short: Each action has a random UUID as its sync key. The stub stores that UUID, and the callback sends it back.
+
+Plan:     US14 and US16 give the key `P1:hold:B2`, made from the proposal, the action kind and the bill.
+Built:    PR 8 stores `proposal_action.sync_key` as a UUID with a unique key. PR 10 sends it to the stub and finds the action by it in the callback.
+Why:      The agent can draft two actions of one kind on one bill. A key made from the three parts then is not unique (I10). A random key also gives the provider no bill or proposal id.
+Undo:     Change `sync_key` to text with the value `<proposal_id>:<kind>:<bill_id>`, and refuse a second action of one kind on one bill in `AgentTools`.
+
+## D41. An action is `pending`, `accepted` or `synced`, and a failed attempt counts on the action (PR 10, 2026-10-22)
+
+In short: An action has no failed status. Each refused send adds 1 to its `attempts`. After 5 attempts the proposal is `sync_failed`, and the apply message is acknowledged, not sent to the DLQ.
+
+Plan:     The flow diagram in `architecture.md` gives "per action: call port, then action synced or failed". D17 and the Workers table give each queue a DLQ.
+Built:    `ActionStatus` in `payables/domain/proposals/sync.py` has `pending`, `accepted` and `synced`. `accepted` means that accounting has the action and confirms it by callback. Only an error that is not an answer from accounting sends the message to `apply.dlq` after the fifth attempt.
+Why:      A retry sends each `pending` action again, so a failed status needs a reset on each retry. The `sync_failed` proposal and its retry already show the failure (D9). A DLQ replay changes nothing, because the worker applies only an `approved` or `syncing` proposal.
+Undo:     Add `failed` to `ActionStatus`, set it on each refused send, and reset it to `pending` in `retry_sync`. Raise `Reject` after the fifth refusal in `apply_fix_proposal_task`.
+
+## D42. A callback carries the sync key only, and the relay role finds its tenant (PR 10, 2026-10-22)
+
+In short: The callback body holds the sync key and the status. The API finds the tenant from the action that holds the key.
+
+Plan:     The API section gives `POST /callbacks/accounting/<provider>` as a signed callback, with no source for the tenant. D15 says that the tenant never comes from a request argument.
+Built:    `tenant_of_sync_key` in `payables/adapters/orm/proposals.py` reads `proposal_action` as the relay role. Migration `0008_apply_sync` grants that role `SELECT` on the `sync_key` and `tenant_id` columns only. The callback then runs in a transaction of that tenant.
+Why:      A tenant id in the body comes from the provider, not from this system. The sync key is unique across tenants (I10), so it gives one tenant. The relay role already reads across tenants (D7).
+Undo:     Put `tenant_id` in the signed body in `callback_body` in `payables/adapters/accounting.py`, read it in the callback view, and remove the column grant.
+
+## D43. `make test-all` starts the apply backoff at 1 s (PR 10, 2026-10-22)
+
+In short: The test stack waits 1, 2, 4 and 8 s between apply attempts. Each other stack waits 10, 20, 40 and 80 s.
+
+Plan:     The Domain contract gives "5 attempts, exponential backoff from 10 s, then `sync_failed`". `sync.spec.ts` proves mode `fail` reaches `sync_failed`.
+Built:    `APPLY_FIRST_RETRY_SECONDS` sets the first wait, with a default of 10. `scripts/test-all.sh` sets it to 1 for the Compose stack. The pytest worker tests set it to 0.
+Why:      With 10 s, one `sync_failed` takes 150 s, which is more than the Playwright limit of 60 s for one test. The number of attempts and the doubling stay the same.
+Undo:     Remove the variable from `scripts/test-all.sh`, and give the fail-mode test in `sync.spec.ts` a limit of 180 s.

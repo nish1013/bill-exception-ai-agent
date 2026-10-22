@@ -1,3 +1,4 @@
+from payables.adapters.orm.accounting import StubLedgerRow, StubModeRow
 from payables.adapters.orm.audit import AuditRow
 from payables.adapters.orm.bills import BillRow
 from payables.adapters.orm.checks import CheckJobBillRow, CheckJobRow
@@ -20,6 +21,8 @@ __all__ = [
     "ProposalRow",
     "PurchaseOrderRow",
     "ResolutionRow",
+    "StubLedgerRow",
+    "StubModeRow",
     "SupplierRow",
     "Tenant",
 ]

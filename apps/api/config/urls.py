@@ -2,10 +2,11 @@ from django.urls import path
 
 from payables.entrypoints.graphql.schema import schema
 from payables.entrypoints.graphql.view import TenantGraphQLView
-from payables.entrypoints.rest import healthz, readyz
+from payables.entrypoints.rest import accounting_callback, healthz, readyz
 
 urlpatterns = [
     path("healthz", healthz),
     path("readyz", readyz),
     path("graphql", TenantGraphQLView.as_view(schema=schema)),
+    path("callbacks/accounting/<str:provider>", accounting_callback),
 ]

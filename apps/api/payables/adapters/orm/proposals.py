@@ -11,6 +11,7 @@ from payables.adapters.orm.bills import BillRow
 from payables.adapters.orm.constraints import violated_constraint
 from payables.adapters.orm.exceptions import ExceptionRow
 from payables.adapters.orm.purchase_orders import PurchaseOrderRow
+from payables.adapters.orm.row_level_security import RELAY_ALIAS
 from payables.adapters.orm.tenants import Tenant
 from payables.application.pages import ListPage
 from payables.application.proposals import (
@@ -35,6 +36,12 @@ from payables.domain.proposals.proposals import (
     ProposalStatus,
     QuotaSlot,
     RejectReason,
+)
+from payables.domain.proposals.sync import (
+    ActionStatus,
+    SyncAction,
+    SyncResult,
+    action_status_after,
 )
 
 QUOTA_KEY = "proposal_tenant_quota_slot_key"
@@ -151,8 +158,11 @@ class ProposalActionRow(models.Model):
         BillRow, on_delete=models.PROTECT, db_constraint=False, related_name="+"
     )
     po_number = models.TextField(null=True)
-    # One sync key for each action. It never changes (I10, D8).
+    # One sync key for each action. The app role can update only status and attempts, so the key
+    # never changes (I10, D8).
     sync_key = models.UUIDField(default=uuid.uuid4, unique=True)
+    status = models.CharField(max_length=16, default=ActionStatus.PENDING.value)
+    attempts = models.SmallIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -163,6 +173,13 @@ class ProposalActionRow(models.Model):
                 condition=Q(kind=ActionKind.MATCH.value, po_number__isnull=False)
                 | Q(kind__in=[ActionKind.HOLD.value, ActionKind.CREDIT.value], po_number=None),
                 name="proposal_action_kind_fields",
+            ),
+            models.CheckConstraint(
+                condition=Q(status__in=[status.value for status in ActionStatus]),
+                name="proposal_action_status_known",
+            ),
+            models.CheckConstraint(
+                condition=Q(attempts__gte=0), name="proposal_action_attempts_not_negative"
             ),
         ]
 
@@ -320,6 +337,83 @@ class ProposalOrmRepository:
         return ProposalRow.objects.filter(tenant_id=self._tenant_id)
 
 
+class ProposalSyncOrmRepository:
+    def __init__(self, tenant_id: UUID) -> None:
+        self._tenant_id = tenant_id
+
+    def lock_status(self, proposal_id: UUID) -> ProposalStatus | None:
+        # Each proposal write starts with a lock on the root (D40). Concurrent writes queue here.
+        rows = self._proposals().select_for_update().filter(id=proposal_id)
+        found = rows.values_list("status", flat=True).first()
+        return None if found is None else ProposalStatus(found)
+
+    def move(
+        self, proposal_id: UUID, from_statuses: tuple[ProposalStatus, ...], to: ProposalStatus
+    ) -> bool:
+        rows = self._proposals().filter(
+            id=proposal_id, status__in=[status.value for status in from_statuses]
+        )
+        return bool(rows.update(status=to.value, updated_at=Now()))
+
+    def pending_actions(self, proposal_id: UUID) -> list[SyncAction]:
+        rows = (
+            self._actions(proposal_id)
+            .filter(status=ActionStatus.PENDING.value)
+            .order_by("created_at", "id")
+            .values(
+                "sync_key",
+                "kind",
+                "bill_id",
+                "bill__supplier__name",
+                "bill__invoice_number",
+                "po_number",
+            )
+        )
+        return [
+            SyncAction(
+                tenant_id=self._tenant_id,
+                sync_key=row["sync_key"],
+                kind=ActionKind(row["kind"]),
+                bill_id=row["bill_id"],
+                supplier_name=row["bill__supplier__name"],
+                invoice_number=row["bill__invoice_number"],
+                po_number=row["po_number"],
+            )
+            for row in rows
+        ]
+
+    def record_results(self, proposal_id: UUID, results: list[SyncResult]) -> None:
+        for result in results:
+            action = self._actions(proposal_id).filter(sync_key=result.sync_key)
+            if result.answer is None:
+                action.update(attempts=F("attempts") + 1)
+                continue
+            # A callback can confirm the action first. An answer never undoes a synced action.
+            action.exclude(status=ActionStatus.SYNCED.value).update(
+                status=action_status_after(result.answer).value
+            )
+
+    def action_statuses(self, proposal_id: UUID) -> list[ActionStatus]:
+        statuses = self._actions(proposal_id).values_list("status", flat=True)
+        return [ActionStatus(status) for status in statuses]
+
+    def proposal_of_key(self, sync_key: UUID) -> UUID | None:
+        rows = ProposalActionRow.objects.filter(tenant_id=self._tenant_id, sync_key=sync_key)
+        return rows.values_list("proposal_id", flat=True).first()
+
+    def mark_synced(self, sync_key: UUID) -> bool:
+        rows = ProposalActionRow.objects.filter(tenant_id=self._tenant_id, sync_key=sync_key)
+        return bool(
+            rows.exclude(status=ActionStatus.SYNCED.value).update(status=ActionStatus.SYNCED.value)
+        )
+
+    def _proposals(self):
+        return ProposalRow.objects.filter(tenant_id=self._tenant_id)
+
+    def _actions(self, proposal_id: UUID):
+        return ProposalActionRow.objects.filter(tenant_id=self._tenant_id, proposal_id=proposal_id)
+
+
 class ProposalOrmQuery:
     def __init__(self, tenant_id: UUID) -> None:
         self._tenant_id = tenant_id
@@ -370,6 +464,9 @@ class ProposalOrmQuery:
                 "bill__supplier__name",
                 "bill__invoice_number",
                 "po_number",
+                "sync_key",
+                "status",
+                "attempts",
             )
         ):
             actions[row["proposal_id"]].append(_action_item(row))
@@ -392,6 +489,14 @@ class ProposalOrmQuery:
 
     def _rows(self):
         return ProposalRow.objects.filter(tenant_id=self._tenant_id)
+
+
+def tenant_of_sync_key(sync_key: UUID) -> UUID | None:
+    # A callback has no token. The tenant comes from the action that holds the key (D15, I10).
+    rows = ProposalActionRow.objects.using(RELAY_ALIAS).filter(sync_key=sync_key)
+    # first() orders by id, and the relay role cannot read id.
+    found = list(rows.values_list("tenant_id", flat=True)[:1])
+    return found[0] if found else None
 
 
 def _utc_today() -> date:
@@ -430,6 +535,9 @@ def _action_item(row: dict) -> ProposalActionItem:
         supplier_name=row["bill__supplier__name"],
         invoice_number=row["bill__invoice_number"],
         po_number=row["po_number"],
+        sync_key=row["sync_key"],
+        status=ActionStatus(row["status"]),
+        attempts=row["attempts"],
     )
 
 
