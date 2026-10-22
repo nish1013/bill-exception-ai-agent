@@ -28,9 +28,15 @@ class ProposalActionType(graphene.ObjectType):
     supplier_name = graphene.String(required=True)
     invoice_number = graphene.String(required=True)
     po_number = graphene.String()
+    sync_key = graphene.UUID(required=True)
+    status = graphene.String(required=True)
+    attempts = graphene.Int(required=True)
 
     def resolve_kind(root: ProposalActionItem, info) -> str:
         return root.kind.value
+
+    def resolve_status(root: ProposalActionItem, info) -> str:
+        return root.status.value
 
 
 class ProposalType(graphene.ObjectType):

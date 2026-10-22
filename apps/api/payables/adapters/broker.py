@@ -14,6 +14,7 @@ CHECK_BILL_TASK = "payables.check_bill"
 PURCHASE_ORDER_ADDED_TASK = "payables.purchase_order_added"
 DRAFT_FIX_PROPOSAL_TASK = "payables.draft_fix_proposal"
 APPLY_FIX_PROPOSAL_TASK = "payables.apply_fix_proposal"
+STUB_CALLBACK_TASK = "payables.stub_accounting_callback"
 
 
 @dataclass(frozen=True)

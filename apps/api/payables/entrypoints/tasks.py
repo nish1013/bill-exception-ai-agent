@@ -1,14 +1,17 @@
 import time
 from uuid import UUID
 
-from celery import Task, shared_task
+from celery import Task, current_app, shared_task
 from celery.exceptions import Reject
 from django.conf import settings
 
+from payables.adapters.accounting import accounting_from_settings, send_stub_callback
 from payables.adapters.broker import (
+    APPLY_FIX_PROPOSAL_TASK,
     CHECK_BILL_TASK,
     DRAFT_FIX_PROPOSAL_TASK,
     PURCHASE_ORDER_ADDED_TASK,
+    STUB_CALLBACK_TASK,
 )
 from payables.adapters.channels import ChannelsConsoleEvents
 from payables.adapters.llm import llm_from_settings
@@ -16,7 +19,7 @@ from payables.adapters.orm.audit import AuditOrmLog
 from payables.adapters.orm.checks import CheckedBillOrmRepository, CheckJobOrmRepository
 from payables.adapters.orm.exceptions import ExceptionOrmRepository, ResolutionOrmRepository
 from payables.adapters.orm.outbox import OutboxOrmRepository
-from payables.adapters.orm.proposals import ProposalOrmRepository
+from payables.adapters.orm.proposals import ProposalOrmRepository, ProposalSyncOrmRepository
 from payables.adapters.orm.purchase_orders import PurchaseOrderOrmRepository
 from payables.adapters.orm.tenants import tenant_transaction
 from payables.application.checks import (
@@ -32,8 +35,25 @@ from payables.application.proposals import (
     publish_proposal_ready,
     run_agent,
 )
+from payables.application.sync import (
+    fail_apply,
+    finish_apply,
+    publish_sync_changed,
+    send_actions,
+    start_apply,
+)
 from payables.domain.checks.jobs import CheckBill, CheckJob, CheckResult
-from payables.domain.proposals.proposals import DraftFixProposal, FixProposalReady
+from payables.domain.proposals.proposals import (
+    ApplyFixProposal,
+    DraftFixProposal,
+    FixProposalReady,
+)
+from payables.domain.proposals.sync import (
+    MAX_APPLY_ATTEMPTS,
+    ProposalSyncChanged,
+    is_last_attempt,
+    retry_delay_seconds,
+)
 from payables.domain.purchase_orders import PurchaseOrderAdded
 
 MAX_ATTEMPTS = 3
@@ -128,6 +148,69 @@ def draft_fix_proposal_task(self: Task, tenant_id: str, proposal_id: str) -> Non
         _publish_ready(command, ready)
         raise Reject(error, requeue=False) from error
     _publish_ready(command, ready)
+
+
+@shared_task(
+    bind=True,
+    name=APPLY_FIX_PROPOSAL_TASK,
+    acks_late=True,
+    reject_on_worker_lost=True,
+    max_retries=MAX_APPLY_ATTEMPTS - 1,
+    soft_time_limit=30,
+    time_limit=40,
+)
+def apply_fix_proposal_task(self: Task, tenant_id: str, proposal_id: str) -> None:
+    command = ApplyFixProposal(UUID(tenant_id), UUID(proposal_id))
+    proposals = ProposalSyncOrmRepository(command.tenant_id)
+    retries = self.request.retries
+    try:
+        with tenant_transaction(command.tenant_id):
+            started = start_apply(command, proposals)
+        if started is None:
+            return
+        _publish_sync(command, started.changed)
+        # No transaction stays open while accounting answers.
+        results = send_actions(started.actions, accounting_from_settings(current_app))
+        with tenant_transaction(command.tenant_id):
+            outcome = finish_apply(command, results, is_last_attempt(retries), proposals)
+    except Exception as error:
+        if not is_last_attempt(retries):
+            raise _retry_apply(self, retries, error) from error
+        with tenant_transaction(command.tenant_id):
+            changed = fail_apply(command, proposals)
+        _publish_sync(command, changed)
+        raise Reject(error, requeue=False) from error
+    _publish_sync(command, outcome.changed)
+    if outcome.retry:
+        raise _retry_apply(self, retries, None)
+
+
+@shared_task(
+    bind=True,
+    name=STUB_CALLBACK_TASK,
+    acks_late=True,
+    reject_on_worker_lost=True,
+    max_retries=MAX_ATTEMPTS - 1,
+    soft_time_limit=10,
+    time_limit=20,
+)
+def stub_accounting_callback_task(self: Task, sync_key: str) -> None:
+    # The demo accounting stub confirms an accepted action by a signed callback (D51, US16).
+    try:
+        send_stub_callback(UUID(sync_key))
+    except Exception as error:
+        if self.request.retries < MAX_ATTEMPTS - 1:
+            raise self.retry(exc=error, countdown=2**self.request.retries) from error
+        raise Reject(error, requeue=False) from error
+
+
+def _retry_apply(task: Task, retries: int, error: Exception | None):
+    delay = retry_delay_seconds(retries, settings.APPLY_FIRST_RETRY_SECONDS)
+    return task.retry(exc=error, countdown=delay)
+
+
+def _publish_sync(command: ApplyFixProposal, changed: ProposalSyncChanged | None) -> None:
+    publish_sync_changed(command.tenant_id, changed, ChannelsConsoleEvents())
 
 
 def _publish_ready(command: DraftFixProposal, ready: FixProposalReady | None) -> None:

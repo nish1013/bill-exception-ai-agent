@@ -3,6 +3,7 @@ from uuid import UUID
 import graphene
 from django.db import transaction
 
+from payables.adapters.orm.accounting import StubLedgerOrmQuery
 from payables.adapters.orm.audit import AuditOrmLog
 from payables.adapters.orm.bills import BillListOrmQuery, BillOrmRepository
 from payables.adapters.orm.checks import CheckedBillOrmRepository, CheckJobOrmRepository
@@ -12,7 +13,11 @@ from payables.adapters.orm.exceptions import (
     ResolutionOrmRepository,
 )
 from payables.adapters.orm.outbox import OutboxOrmRepository
-from payables.adapters.orm.proposals import ProposalOrmQuery, ProposalOrmRepository
+from payables.adapters.orm.proposals import (
+    ProposalOrmQuery,
+    ProposalOrmRepository,
+    ProposalSyncOrmRepository,
+)
 from payables.adapters.orm.purchase_orders import PurchaseOrderOrmRepository
 from payables.adapters.orm.suppliers import SupplierListOrmQuery, SupplierOrmRepository
 from payables.adapters.orm.tenants import TenantRepository
@@ -37,11 +42,13 @@ from payables.application.proposals import (
 )
 from payables.application.purchase_orders import AddPurchaseOrderCommand, add_purchase_order
 from payables.application.suppliers import register_supplier
+from payables.application.sync import LedgerEntry, list_ledger, retry_sync
 from payables.domain.access import Principal
 from payables.domain.bills import BillPayload
 from payables.domain.checks.jobs import CheckJob
 from payables.domain.purchase_orders import PurchaseOrder
 from payables.domain.suppliers import Supplier
+from payables.entrypoints.graphql.accounting import LedgerListType
 from payables.entrypoints.graphql.bills import BillInput, BillListType, IngestBillPayload
 from payables.entrypoints.graphql.checks import CheckJobType
 from payables.entrypoints.graphql.exceptions import ExceptionListType, ExceptionType
@@ -65,6 +72,7 @@ class Query(graphene.ObjectType):
     check_job = graphene.Field(CheckJobType, required=True, id=graphene.UUID(required=True))
     proposals = graphene.Field(ProposalListType, required=True, status=graphene.String())
     proposal = graphene.Field(ProposalType, required=True, id=graphene.UUID(required=True))
+    accounting_ledger = graphene.Field(LedgerListType, required=True)
 
     def resolve_viewer(root, info) -> Viewer:
         principal = _principal(info)
@@ -94,6 +102,9 @@ class Query(graphene.ObjectType):
 
     def resolve_proposal(root, info, id: UUID) -> ProposalItem:
         return get_proposal(id, ProposalOrmQuery(_principal(info).tenant_id))
+
+    def resolve_accounting_ledger(root, info) -> ListPage[LedgerEntry]:
+        return list_ledger(StubLedgerOrmQuery(_principal(info).tenant_id))
 
 
 class Mutation(graphene.ObjectType):
@@ -141,6 +152,9 @@ class Mutation(graphene.ObjectType):
         required=True,
         proposal_id=graphene.UUID(required=True),
         reason=graphene.String(required=True),
+    )
+    retry_sync = graphene.Field(
+        ProposalType, required=True, proposal_id=graphene.UUID(required=True)
     )
 
     def resolve_register_supplier(root, info, name: str, vat_number: str | None = None) -> Supplier:
@@ -228,6 +242,17 @@ class Mutation(graphene.ObjectType):
         tenant_id = principal.tenant_id
         reject_fix_proposal(
             principal, proposal_id, reason, ProposalOrmRepository(tenant_id), AuditOrmLog(tenant_id)
+        )
+        return get_proposal(proposal_id, ProposalOrmQuery(tenant_id))
+
+    def resolve_retry_sync(root, info, proposal_id: UUID) -> ProposalItem:
+        principal = _principal(info)
+        tenant_id = principal.tenant_id
+        retry_sync(
+            principal,
+            proposal_id,
+            ProposalSyncOrmRepository(tenant_id),
+            OutboxOrmRepository(tenant_id),
         )
         return get_proposal(proposal_id, ProposalOrmQuery(tenant_id))
 

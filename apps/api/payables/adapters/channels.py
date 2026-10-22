@@ -8,6 +8,7 @@ from channels.layers import BaseChannelLayer, get_channel_layer
 from payables.application.console_events import ConsoleEvent
 from payables.domain.checks.jobs import BillCheckCompleted, BillCheckProgress
 from payables.domain.proposals.proposals import FixProposalReady
+from payables.domain.proposals.sync import ProposalSyncChanged
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +53,12 @@ def console_event_message(event: ConsoleEvent) -> dict[str, Any]:
         case FixProposalReady():
             return {
                 "type": "FixProposalReady",
+                "proposalId": str(event.proposal_id),
+                "status": event.status.value,
+            }
+        case ProposalSyncChanged():
+            return {
+                "type": "ProposalSyncChanged",
                 "proposalId": str(event.proposal_id),
                 "status": event.status.value,
             }
