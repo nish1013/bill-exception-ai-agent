@@ -1,0 +1,184 @@
+{
+  "list_exceptions": {
+    "id": "chatcmpl-recorded0000000000000001",
+    "object": "chat.completion",
+    "created": 1792656001,
+    "model": "gpt-4.1-mini-2025-04-14",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": null,
+          "refusal": null,
+          "annotations": [],
+          "tool_calls": [
+            {
+              "id": "call_rec0list_exceptions",
+              "type": "function",
+              "function": {
+                "name": "list_exceptions",
+                "arguments": "{}"
+              }
+            }
+          ]
+        },
+        "logprobs": null,
+        "finish_reason": "tool_calls"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 412,
+      "completion_tokens": 11,
+      "total_tokens": 423,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "audio_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0,
+        "audio_tokens": 0,
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
+      }
+    },
+    "service_tier": "default",
+    "system_fingerprint": "fp_recorded00"
+  },
+  "draft_hold": {
+    "id": "chatcmpl-recorded0000000000000002",
+    "object": "chat.completion",
+    "created": 1792656002,
+    "model": "gpt-4.1-mini-2025-04-14",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": null,
+          "refusal": null,
+          "annotations": [],
+          "tool_calls": [
+            {
+              "id": "call_rec0draft_hold",
+              "type": "function",
+              "function": {
+                "name": "draft_hold",
+                "arguments": "{\"bill_id\": \"b2e5a7c9-4d6f-4c8e-a02b-3d5f7b9c1e4a\"}"
+              }
+            }
+          ]
+        },
+        "logprobs": null,
+        "finish_reason": "tool_calls"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 538,
+      "completion_tokens": 27,
+      "total_tokens": 565,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "audio_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0,
+        "audio_tokens": 0,
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
+      }
+    },
+    "service_tier": "default",
+    "system_fingerprint": "fp_recorded00"
+  },
+  "approve_and_hold": {
+    "id": "chatcmpl-recorded0000000000000003",
+    "object": "chat.completion",
+    "created": 1792656003,
+    "model": "gpt-4.1-mini-2025-04-14",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": null,
+          "refusal": null,
+          "annotations": [],
+          "tool_calls": [
+            {
+              "id": "call_rec0approve_fix_proposal",
+              "type": "function",
+              "function": {
+                "name": "approve_fix_proposal",
+                "arguments": "{\"proposal_id\": \"4f1c2a9e-7b3d-4c8a-9e21-b5d6f0a1c3e7\"}"
+              }
+            },
+            {
+              "id": "call_rec1draft_hold",
+              "type": "function",
+              "function": {
+                "name": "draft_hold",
+                "arguments": "{\"bill_id\": \"b2e5a7c9-4d6f-4c8e-a02b-3d5f7b9c1e4a\"}"
+              }
+            }
+          ]
+        },
+        "logprobs": null,
+        "finish_reason": "tool_calls"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 538,
+      "completion_tokens": 52,
+      "total_tokens": 590,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "audio_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0,
+        "audio_tokens": 0,
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
+      }
+    },
+    "service_tier": "default",
+    "system_fingerprint": "fp_recorded00"
+  },
+  "final": {
+    "id": "chatcmpl-recorded0000000000000004",
+    "object": "chat.completion",
+    "created": 1792656004,
+    "model": "gpt-4.1-mini-2025-04-14",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "The plan holds bill b2e5a7c9-4d6f-4c8e-a02b-3d5f7b9c1e4a until the duplicate is checked.",
+          "refusal": null,
+          "annotations": []
+        },
+        "logprobs": null,
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 601,
+      "completion_tokens": 24,
+      "total_tokens": 625,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "audio_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0,
+        "audio_tokens": 0,
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
+      }
+    },
+    "service_tier": "default",
+    "system_fingerprint": "fp_recorded00"
+  }
+}

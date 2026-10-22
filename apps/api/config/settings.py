@@ -64,6 +64,10 @@ CELERY_IMPORTS = ["payables.entrypoints.tasks"]
 
 # The stub model runs in CI and the demo. It makes no network call and needs no key (D54).
 LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "stub")
+# A dated snapshot, so a provider update cannot change the agent's behaviour (D54).
+LLM_MODEL = os.environ.get("LLM_MODEL") or "gpt-4.1-mini-2025-04-14"
+# Only worker-propose-ai has this variable (D54).
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 RATE_LIMIT_PREFIX = os.environ.get("RATE_LIMIT_PREFIX", "ratelimit")
 
 # The demo accounting stub answers ok, fail or callback (D51). A stub_mode row sets one tenant.
