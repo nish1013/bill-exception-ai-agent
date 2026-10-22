@@ -1,4 +1,4 @@
-.PHONY: demo test-all test-api test-openai bench
+.PHONY: demo test-all test-api test-openai bench infra-validate
 
 # Starts the stack and seeds two tenants with bills that raise each rule (D55). Safe to run again.
 demo:
@@ -22,3 +22,11 @@ test-openai:
 # Prints the median time of startBillCheck with 500 bills. It does not pass or fail on time (D38).
 bench:
 	docker compose exec -T api uv run python -m benchmarks.start_bill_check
+
+# CI runs terraform itself. This target needs only Docker.
+TERRAFORM = docker run --rm -v "$(CURDIR)/infra:/infra" -w /infra hashicorp/terraform:1.9.8
+
+infra-validate:
+	$(TERRAFORM) fmt -check -recursive
+	$(TERRAFORM) init -backend=false -input=false
+	$(TERRAFORM) validate
