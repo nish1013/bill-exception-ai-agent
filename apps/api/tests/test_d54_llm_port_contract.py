@@ -139,7 +139,7 @@ def test_d54_openai_error_raises_after_one_request():
         ("stub", TEST_KEY, StubLlm),
         ("openai", TEST_KEY, OpenAiLlm),
         ("openai", "", ImproperlyConfigured),
-        ("claude", TEST_KEY, ImproperlyConfigured),
+        ("unknown", TEST_KEY, ImproperlyConfigured),
     ],
 )
 def test_d54_llm_provider_picks_the_adapter(settings, provider, key, expected):
