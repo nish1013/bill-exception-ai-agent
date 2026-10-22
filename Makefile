@@ -24,7 +24,7 @@ bench:
 	docker compose exec -T api uv run python -m benchmarks.start_bill_check
 
 # CI runs terraform itself. This target needs only Docker.
-TERRAFORM = docker run --rm -v "$(CURDIR)/infra:/infra" -w /infra hashicorp/terraform:1.9.8
+TERRAFORM = docker run --rm -v "$(CURDIR)/infra:/infra" -w /infra hashicorp/terraform:1.10.5
 
 infra-validate:
 	$(TERRAFORM) fmt -check -recursive

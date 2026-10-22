@@ -6,4 +6,7 @@ __pycache__/
 .env
 test-results/
 infra/.terraform/
-infra/.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+infra/backend.hcl
