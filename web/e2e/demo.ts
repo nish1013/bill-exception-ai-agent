@@ -50,6 +50,7 @@ export interface BillEntry {
   supplierName: string;
   invoiceNumber: string;
   amount: string;
+  currency?: string;
   issueDate: string;
   vatAmount?: string;
   poNumber?: string;
@@ -111,6 +112,9 @@ export async function fillBill(page: Page, bill: BillEntry): Promise<void> {
   await form.getByLabel("Supplier name").fill(bill.supplierName);
   await form.getByLabel("Invoice number").fill(bill.invoiceNumber);
   await form.getByLabel(/^Amount/).fill(bill.amount);
+  if (bill.currency !== undefined) {
+    await form.getByLabel("Currency").fill(bill.currency);
+  }
   await form.getByLabel("Issue date").fill(bill.issueDate);
   if (bill.vatAmount !== undefined) {
     await form.getByLabel(/^VAT amount/).fill(bill.vatAmount);

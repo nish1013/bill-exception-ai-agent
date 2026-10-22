@@ -249,3 +249,15 @@ export const ADD_PURCHASE_ORDER = graphql(`
     }
   }
 `);
+
+export const REPORT = graphql(`
+  query Report {
+    report {
+      openExceptions
+      moneyAtRisk {
+        currency
+        amount
+      }
+    }
+  }
+`);

@@ -7,6 +7,7 @@ type Query {
   proposals(status: String): ProposalList!
   proposal(id: UUID!): Proposal!
   accountingLedger: LedgerList!
+  report: Report!
 }
 
 type Viewer {
@@ -145,6 +146,16 @@ type LedgerEntry {
   poNumber: String
   answer: String!
   receivedAt: DateTime!
+}
+
+type Report {
+  openExceptions: Int!
+  moneyAtRisk: [CurrencyTotal!]!
+}
+
+type CurrencyTotal {
+  currency: String!
+  amount: MinorUnits!
 }
 
 type Mutation {

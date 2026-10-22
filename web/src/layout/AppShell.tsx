@@ -14,6 +14,7 @@ const TABS: NavTab[] = [
   { path: "/bills", label: "Bills" },
   { path: "/inbox", label: "Inbox" },
   { path: "/proposals", label: "Proposals" },
+  { path: "/report", label: "Report" },
   { path: "/accounting-stub", label: "Accounting (stub)" },
 ];
 

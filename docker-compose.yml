@@ -136,6 +136,15 @@ services:
       timeout: 10s
       retries: 12
 
+  worker-reports:
+    <<: *app
+    command: ["celery", "-A", "config", "worker", "-Q", "reports", "-c", "1", "-n", "reports@%h"]
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping -d reports@$$HOSTNAME"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+
   web:
     build:
       context: ./web

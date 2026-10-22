@@ -8,6 +8,8 @@ from kombu import Connection, Exchange, Queue
 CHECKS = "checks"
 PROPOSE_AI = "propose-ai"
 APPLY = "apply"
+# worker-reports listens on this queue. No task is sent to it in v1 (D49).
+REPORTS = "reports"
 DEAD_LETTER_SUFFIX = ".dlq"
 
 CHECK_BILL_TASK = "payables.check_bill"
@@ -65,11 +67,17 @@ def dead_letter_queue(name: str) -> Queue:
 
 
 # The apply queue is durable, so each apply message waits there for its worker (D43).
-WORK_QUEUES = (work_queue(CHECKS), work_queue(PROPOSE_AI), work_queue(APPLY))
+WORK_QUEUES = (
+    work_queue(CHECKS),
+    work_queue(PROPOSE_AI),
+    work_queue(APPLY),
+    work_queue(REPORTS),
+)
 DEAD_LETTER_QUEUES = (
     dead_letter_queue(CHECKS),
     dead_letter_queue(PROPOSE_AI),
     dead_letter_queue(APPLY),
+    dead_letter_queue(REPORTS),
 )
 ALL_QUEUES = WORK_QUEUES + DEAD_LETTER_QUEUES
 
