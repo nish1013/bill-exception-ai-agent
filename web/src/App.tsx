@@ -7,6 +7,7 @@ import { InboxPage } from "./inbox/InboxPage";
 import { AppShell } from "./layout/AppShell";
 import { ProposalPage } from "./proposals/ProposalPage";
 import { ProposalsPage } from "./proposals/ProposalsPage";
+import { ReportPage } from "./report/ReportPage";
 
 export function App() {
   // Created after sign-in, so the router starts at the path that the callback restored.
@@ -22,6 +23,7 @@ export function App() {
             { path: "inbox", element: <InboxPage /> },
             { path: "proposals", element: <ProposalsPage /> },
             { path: "proposals/:proposalId", element: <ProposalPage /> },
+            { path: "report", element: <ReportPage /> },
             { path: "accounting-stub", element: <AccountingStubPage /> },
             { path: "*", element: <Navigate to="/bills" replace /> },
           ],
