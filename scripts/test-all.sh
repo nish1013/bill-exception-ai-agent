@@ -26,6 +26,9 @@ web() {
   npm --prefix web "$@"
 }
 
+# sync.spec.ts waits for 5 failed apply attempts: 1 + 2 + 4 + 8 s, not the default 150 s (D9).
+export APPLY_FIRST_RETRY_SECONDS="${APPLY_FIRST_RETRY_SECONDS:-1}"
+
 docker compose up -d --build --wait
 run python manage.py migrate --database owner --noinput
 run python manage.py seed_demo
