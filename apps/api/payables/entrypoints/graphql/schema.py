@@ -19,6 +19,7 @@ from payables.adapters.orm.proposals import (
     ProposalSyncOrmRepository,
 )
 from payables.adapters.orm.purchase_orders import PurchaseOrderOrmRepository
+from payables.adapters.orm.reports import ReportOrmQuery
 from payables.adapters.orm.suppliers import SupplierListOrmQuery, SupplierOrmRepository
 from payables.adapters.orm.tenants import TenantRepository
 from payables.adapters.rate_limit import RedisProposalRateLimiter
@@ -41,6 +42,7 @@ from payables.application.proposals import (
     request_fix_proposal,
 )
 from payables.application.purchase_orders import AddPurchaseOrderCommand, add_purchase_order
+from payables.application.reports import TenantReport, get_report
 from payables.application.suppliers import register_supplier
 from payables.application.sync import LedgerEntry, list_ledger, retry_sync
 from payables.domain.access import Principal
@@ -54,6 +56,7 @@ from payables.entrypoints.graphql.checks import CheckJobType
 from payables.entrypoints.graphql.exceptions import ExceptionListType, ExceptionType
 from payables.entrypoints.graphql.proposals import ProposalListType, ProposalType
 from payables.entrypoints.graphql.purchase_orders import PurchaseOrderType
+from payables.entrypoints.graphql.reports import ReportType
 from payables.entrypoints.graphql.scalars import MinorUnits
 from payables.entrypoints.graphql.suppliers import SupplierListType, SupplierType
 from payables.entrypoints.graphql.viewer import Viewer
@@ -73,6 +76,7 @@ class Query(graphene.ObjectType):
     proposals = graphene.Field(ProposalListType, required=True, status=graphene.String())
     proposal = graphene.Field(ProposalType, required=True, id=graphene.UUID(required=True))
     accounting_ledger = graphene.Field(LedgerListType, required=True)
+    report = graphene.Field(ReportType, required=True)
 
     def resolve_viewer(root, info) -> Viewer:
         principal = _principal(info)
@@ -105,6 +109,9 @@ class Query(graphene.ObjectType):
 
     def resolve_accounting_ledger(root, info) -> ListPage[LedgerEntry]:
         return list_ledger(StubLedgerOrmQuery(_principal(info).tenant_id))
+
+    def resolve_report(root, info) -> TenantReport:
+        return get_report(ReportOrmQuery(_principal(info).tenant_id))
 
 
 class Mutation(graphene.ObjectType):

@@ -235,7 +235,7 @@ class InboxOrmQuery:
     def worst_first(self, filters: InboxFilter) -> ListPage[InboxItem]:
         rows = self._rows()
         if filters.status is not None:
-            rows = rows.filter(_with_status(filters.status))
+            rows = rows.filter(with_status(filters.status))
         if filters.severity is not None:
             rows = rows.filter(rule__in=[rule.value for rule in rules_with(filters.severity)])
         listed = (
@@ -253,16 +253,7 @@ class InboxOrmQuery:
         return ExceptionRow.objects.filter(tenant_id=self._tenant_id)
 
 
-def _kind(value: str | None) -> ResolutionKind | None:
-    return None if value is None else ResolutionKind(value)
-
-
-def _raise_if_resolved(error: IntegrityError) -> None:
-    if violated_constraint(error) == RESOLUTION_KEY:
-        raise ResolutionExistsError("the exception already has a resolution") from error
-
-
-def _with_status(status: ExceptionStatus) -> Q:
+def with_status(status: ExceptionStatus) -> Q:
     if status is ExceptionStatus.OPEN:
         return Q(resolution__isnull=True)
     matches = Q(resolution__kind__in=[kind.value for kind in kinds_with(status)])
@@ -273,6 +264,15 @@ def _with_status(status: ExceptionStatus) -> Q:
     if status is PROPOSAL_UNSYNCED_STATUS:
         matches |= by_proposal & ~synced
     return matches
+
+
+def _kind(value: str | None) -> ResolutionKind | None:
+    return None if value is None else ResolutionKind(value)
+
+
+def _raise_if_resolved(error: IntegrityError) -> None:
+    if violated_constraint(error) == RESOLUTION_KEY:
+        raise ResolutionExistsError("the exception already has a resolution") from error
 
 
 def _severity_rank() -> Case:
