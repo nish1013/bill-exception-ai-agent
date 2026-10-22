@@ -18,12 +18,19 @@ import {
 import { useState } from "react";
 import { useParams } from "react-router";
 
+import { isProposalEvent } from "../events/consoleEvent";
 import { useConsoleEvents } from "../events/useConsoleEvents";
 import { errorMessage } from "../graphql/errorMessage";
-import { APPROVE_FIX_PROPOSAL, EXCEPTIONS, PROPOSAL, VIEWER } from "../graphql/operations";
+import {
+  APPROVE_FIX_PROPOSAL,
+  EXCEPTIONS,
+  PROPOSAL,
+  RETRY_SYNC,
+  VIEWER,
+} from "../graphql/operations";
 import { ProposalStatusChip } from "./ProposalStatusChip";
 import { RejectProposalDialog } from "./RejectProposalDialog";
-import { canDecide, failedReasonText, isDrafting } from "./proposalStatus";
+import { canDecide, canRetrySync, failedReasonText, isDrafting, showsSync } from "./proposalStatus";
 
 export function ProposalPage() {
   const { proposalId = "" } = useParams();
@@ -38,11 +45,15 @@ export function ProposalPage() {
     refetchQueries: [PROPOSAL, EXCEPTIONS],
     onError: () => undefined,
   });
+  const [retrySync, retry] = useMutation(RETRY_SYNC, {
+    variables: { proposalId },
+    onError: () => undefined,
+  });
   const [rejecting, setRejecting] = useState(false);
   // The row is the truth. The event and each socket open only start a read of it (D18).
   useConsoleEvents({
     onEvent: (event) => {
-      if (event.type === "FixProposalReady" && event.proposalId === proposalId) {
+      if (isProposalEvent(event, proposalId)) {
         void refetch();
       }
     },
@@ -57,6 +68,7 @@ export function ProposalPage() {
   }
   const proposal = data.proposal;
   const isApprover = viewer?.viewer.role === "approver";
+  const withSync = showsSync(proposal.status);
 
   return (
     <Stack spacing={2}>
@@ -94,7 +106,25 @@ export function ProposalPage() {
           An exception of this proposal has changed. Request a new proposal.
         </Alert>
       )}
+      {proposal.status === "syncing" && (
+        <Alert severity="info" role="status">
+          The actions are on their way to accounting.
+        </Alert>
+      )}
+      {proposal.status === "sync_failed" && (
+        <Alert severity="error" role="status">
+          Accounting did not take the actions after 5 attempts.
+        </Alert>
+      )}
       {approval.error && <Alert severity="error">{errorMessage(approval.error)}</Alert>}
+      {retry.error && <Alert severity="error">{errorMessage(retry.error)}</Alert>}
+      {isApprover && canRetrySync(proposal.status) && (
+        <Stack direction="row" justifyContent="flex-end">
+          <Button variant="contained" disabled={retry.loading} onClick={() => void retrySync()}>
+            Retry sync
+          </Button>
+        </Stack>
+      )}
       {isApprover && canDecide(proposal.status) && (
         <Stack direction="row" spacing={1} justifyContent="flex-end">
           <Button variant="outlined" onClick={() => setRejecting(true)}>
@@ -134,20 +164,26 @@ export function ProposalPage() {
               <TableCell>Supplier</TableCell>
               <TableCell>Invoice number</TableCell>
               <TableCell>PO number</TableCell>
+              {withSync && <TableCell>Sync</TableCell>}
+              {withSync && <TableCell>Sync key</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
             {proposal.actions.map((action) => (
-              <TableRow key={`${action.kind}-${action.billId}`}>
+              <TableRow key={action.syncKey}>
                 <TableCell>{action.kind}</TableCell>
                 <TableCell>{action.supplierName}</TableCell>
                 <TableCell>{action.invoiceNumber}</TableCell>
                 <TableCell>{action.poNumber ?? ""}</TableCell>
+                {withSync && <TableCell>{action.status}</TableCell>}
+                {withSync && (
+                  <TableCell sx={{ fontFamily: "monospace" }}>{action.syncKey}</TableCell>
+                )}
               </TableRow>
             ))}
             {proposal.actions.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4}>No draft actions</TableCell>
+                <TableCell colSpan={withSync ? 6 : 4}>No draft actions</TableCell>
               </TableRow>
             )}
           </TableBody>

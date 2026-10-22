@@ -159,6 +159,9 @@ export const PROPOSAL = graphql(`
         supplierName
         invoiceNumber
         poNumber
+        syncKey
+        status
+        attempts
       }
     }
   }
@@ -185,6 +188,32 @@ export const REJECT_FIX_PROPOSAL = graphql(`
       approvedBy
       approvedAt
       rejectReason
+    }
+  }
+`);
+
+export const RETRY_SYNC = graphql(`
+  mutation RetrySync($proposalId: UUID!) {
+    retrySync(proposalId: $proposalId) {
+      id
+      status
+    }
+  }
+`);
+
+export const ACCOUNTING_LEDGER = graphql(`
+  query AccountingLedger {
+    accountingLedger {
+      totalCount
+      items {
+        syncKey
+        kind
+        supplierName
+        invoiceNumber
+        poNumber
+        answer
+        receivedAt
+      }
     }
   }
 `);

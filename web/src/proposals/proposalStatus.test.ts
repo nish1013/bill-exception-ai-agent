@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { canDecide, failedReasonText, isDrafting, proposalStatusColor } from "./proposalStatus";
+import {
+  canDecide,
+  canRetrySync,
+  failedReasonText,
+  isDrafting,
+  proposalStatusColor,
+  showsSync,
+} from "./proposalStatus";
 
 describe("proposal status", () => {
   it.each([
@@ -10,7 +17,10 @@ describe("proposal status", () => {
     ["stale", "default"],
     ["approved", "success"],
     ["rejected", "default"],
-  ])("us11: %s shows as %s", (status, color) => {
+    ["syncing", "info"],
+    ["synced", "success"],
+    ["sync_failed", "error"],
+  ])("us11 us14: %s shows as %s", (status, color) => {
     expect(proposalStatusColor(status)).toBe(color);
   });
 
@@ -34,5 +44,25 @@ describe("proposal status", () => {
     ["stale", false],
   ])("us12 us13: %s takes a decision: %s", (status, decides) => {
     expect(canDecide(status)).toBe(decides);
+  });
+
+  it.each([
+    ["sync_failed", true],
+    ["syncing", false],
+    ["synced", false],
+    ["approved", false],
+  ])("us15: %s takes a retry: %s", (status, retries) => {
+    expect(canRetrySync(status)).toBe(retries);
+  });
+
+  it.each([
+    ["pending", false],
+    ["rejected", false],
+    ["approved", true],
+    ["syncing", true],
+    ["synced", true],
+    ["sync_failed", true],
+  ])("us14: %s shows the sync of each action: %s", (status, shows) => {
+    expect(showsSync(status)).toBe(shows);
   });
 });

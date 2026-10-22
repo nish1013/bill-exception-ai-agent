@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { expect, type Page } from "@playwright/test";
 
-import { createTenants } from "./compose";
+import { createTenants, setStubMode } from "./compose";
 import {
   approverOf,
   clerkOf,
@@ -26,6 +26,8 @@ const A1_AS_CLERK = clerkOf(TENANT, "a1");
 
 test.beforeAll(() => {
   createTenants([TENANT]);
+  // Accounting refuses each action, so each approved exception stays pending_sync.
+  setStubMode(TENANT, "fail");
 });
 
 function billFor(label: string): BillEntry {
@@ -60,7 +62,6 @@ test("us12: C1 requests, A1 approves, the exception waits for the sync", async (
   await page.getByRole("button", { name: "Approve" }).click();
 
   await expect(page.getByRole("status").filter({ hasText: "Approved by a1" })).toBeVisible();
-  await expect(page.getByText("approved", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Approve" })).toBeHidden();
   await page.getByRole("tab", { name: "Inbox" }).click();
   await showStatus(page, "pending_sync");
